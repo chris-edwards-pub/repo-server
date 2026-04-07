@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Rocky Linux Repository Sync
+Documentation=https://github.com/your-org/repo-server
+
+[Timer]
+OnCalendar={{ rpm_sync_schedule }}
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target

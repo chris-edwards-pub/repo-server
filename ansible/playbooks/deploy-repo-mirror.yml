@@ -1,0 +1,99 @@
+---
+- name: Deploy Repository Mirror Server
+  hosts: repo_servers
+  become: true
+
+  pre_tasks:
+    - name: Validate OS requirements
+      assert:
+        that:
+          - ansible_distribution == "Rocky" or ansible_distribution == "RedHat"
+          - ansible_distribution_major_version|int >= 9
+        fail_msg: "This playbook requires Rocky Linux 10 (or Rocky/RHEL 9+)"
+        success_msg: "OS validation passed: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      tags: always
+
+    - name: Check available disk space
+      shell: df -BG {{ repo_base_path | dirname }} 2>/dev/null | tail -1 | awk '{print $4}' | sed 's/G//' || echo "1000"
+      register: available_space
+      changed_when: false
+      tags: always
+
+    - name: Ensure sufficient disk space
+      assert:
+        that: available_space.stdout|int > 500
+        fail_msg: "Insufficient disk space. Need at least 500GB, found {{ available_space.stdout }}GB"
+        success_msg: "Disk space check passed: {{ available_space.stdout }}GB available"
+      tags: always
+
+    - name: Display deployment info
+      debug:
+        msg:
+          - "Deploying to: {{ inventory_hostname }} ({{ ansible_host }})"
+          - "Repository base path: {{ repo_base_path }}"
+          - "Rocky version: {{ repo_rocky_version }}"
+          - "Ubuntu release: {{ repo_ubuntu_release }}"
+      tags: always
+
+  roles:
+    - role: common
+      tags: [common]
+
+    - role: repo-storage
+      tags: [storage]
+
+    - role: rpm-mirror
+      tags: [rpm]
+
+    - role: deb-mirror
+      tags: [deb]
+
+    - role: nginx
+      tags: [nginx]
+
+    - role: monitoring
+      tags: [monitoring]
+      when: monitoring_enabled | default(true)
+
+  post_tasks:
+    - name: Validate services are running
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - container-aptly
+        - nginx
+      tags: [validate]
+
+    - name: Validate timers are enabled
+      systemd:
+        name: "{{ item }}"
+        enabled: yes
+      loop:
+        - rpm-sync.timer
+        - aptly-sync.timer
+      tags: [validate]
+
+    - name: Display access information
+      debug:
+        msg:
+          - "========================================"
+          - "Repository mirror deployed successfully!"
+          - "========================================"
+          - ""
+          - "RPM repos: http://{{ repo_server_hostname }}/rpm/"
+          - "DEB repos: http://{{ repo_server_hostname }}/deb/"
+          - ""
+          - "Health check: http://{{ repo_server_hostname }}/health"
+          - "RPM status: http://{{ repo_server_hostname }}/status/rpm"
+          - "DEB status: http://{{ repo_server_hostname }}/status/deb"
+          - ""
+          - "To trigger manual sync:"
+          - "  sudo systemctl start rpm-sync.service"
+          - "  sudo systemctl start aptly-sync.service"
+          - ""
+          - "To check sync logs:"
+          - "  sudo journalctl -u rpm-sync.service -f"
+          - "  sudo journalctl -u aptly-sync.service -f"
+      tags: always

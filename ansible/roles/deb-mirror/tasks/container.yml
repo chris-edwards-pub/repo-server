@@ -1,0 +1,68 @@
+---
+- name: Check if Aptly container exists
+  command: podman container exists aptly
+  register: aptly_exists
+  failed_when: false
+  changed_when: false
+
+- name: Stop existing Aptly container
+  command: podman stop aptly
+  when: aptly_exists.rc == 0
+  failed_when: false
+  changed_when: true
+
+- name: Remove existing Aptly container
+  command: podman rm aptly
+  when: aptly_exists.rc == 0
+  failed_when: false
+  changed_when: true
+
+- name: Pull Aptly Docker image
+  containers.podman.podman_image:
+    name: docker.io/aptly/aptly
+    tag: latest
+    state: present
+
+- name: Create Aptly container
+  containers.podman.podman_container:
+    name: aptly
+    image: docker.io/aptly/aptly:latest
+    state: started
+    recreate: no
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - "{{ repo_base_path }}/aptly/data:/aptly:Z"
+      - "{{ repo_base_path }}/aptly/config:/root/.aptly:Z"
+      - "{{ repo_base_path }}/aptly/public:/aptly/public:Z"
+    command: aptly serve -listen=:8080
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+- name: Generate systemd service for Aptly container
+  command: podman generate systemd --name aptly --files --new
+  args:
+    chdir: /tmp
+  changed_when: true
+
+- name: Install Aptly systemd service
+  copy:
+    src: /tmp/container-aptly.service
+    dest: /etc/systemd/system/container-aptly.service
+    mode: '0644'
+    remote_src: yes
+  notify: reload systemd
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Enable and start Aptly container service
+  systemd:
+    name: container-aptly
+    enabled: yes
+    state: started

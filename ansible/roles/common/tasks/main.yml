@@ -1,0 +1,58 @@
+---
+- name: Install base packages
+  dnf:
+    name:
+      - dnf-plugins-core
+      - createrepo_c
+      - yum-utils
+      - nginx
+      - podman
+      - jq
+      - curl
+      - wget
+      - rsync
+      - policycoreutils-python-utils
+    state: present
+  tags: packages
+
+- name: Ensure firewalld is installed and running
+  block:
+    - name: Install firewalld
+      dnf:
+        name: firewalld
+        state: present
+
+    - name: Start and enable firewalld
+      systemd:
+        name: firewalld
+        state: started
+        enabled: yes
+  when: firewall_enabled | default(true)
+  tags: firewall
+
+- name: Configure firewall rules
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: "{{ firewall_allowed_ports }}"
+  when: firewall_enabled | default(true)
+  notify: reload firewalld
+  tags: firewall
+
+- name: Ensure SELinux is in enforcing mode
+  selinux:
+    policy: targeted
+    state: enforcing
+  when: selinux_enabled | default(true)
+  tags: selinux
+
+- name: Create log directory
+  file:
+    path: "{{ repo_base_path }}/logs"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  tags: filesystem

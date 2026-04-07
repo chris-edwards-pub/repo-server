@@ -1,0 +1,320 @@
+===============================================
+PODMAN & APTLY REPOSITORY MIRROR SETUP
+===============================================
+
+1. INSTALL PODMAN
+-----------------
+sudo dnf install podman -y
+
+2. CREATE PERSISTENT STORAGE
+-----------------------------
+sudo mkdir -p /repos/aptly/{config,data,public}
+
+3. APTLY CONFIGURATION
+----------------------
+nano /repos/aptly/config/aptly.conf
+{
+  "rootDir": "/aptly",
+  "architectures": ["amd64", "arm64"],
+  "gpgDisableSign": false,
+  "gpgDisableVerify": false
+}
+
+4. GPG KEY SETUP (HOST SIDE)
+-----------------------------
+gpg --full-generate-key
+gpg --export -a "Offline Mirror" > /repos/aptly/config/public.key
+gpg --export-secret-keys -a "Offline Mirror" > /repos/aptly/config/private.key
+
+5. RUN APTLY CONTAINER
+----------------------
+podman run -d \
+  --name aptly \
+  -v /repos/aptly/data:/aptly \
+  -v /repos/aptly/config:/root/.aptly \
+  -v /repos/aptly/public:/aptly/public \
+  -p 8080:8080 \
+  docker.io/aptly/aptly:latest \
+  aptly serve -listen=:8080
+
+6. ACCESS CONTAINER
+-------------------
+podman exec -it aptly bash
+
+===============================================
+INSIDE THE CONTAINER
+===============================================
+
+7. ADD MIRRORS (ONE-TIME SETUP)
+--------------------------------
+
+Ubuntu 24.04:
+aptly mirror create -architectures=amd64,arm64 ubuntu-noble \
+http://archive.ubuntu.com/ubuntu noble main restricted universe multiverse
+aptly mirror create -architectures=amd64,arm64 ubuntu-noble-updates \
+http://archive.ubuntu.com/ubuntu noble-updates main restricted universe multiverse
+aptly mirror create -architectures=amd64,arm64 ubuntu-noble-security \
+http://security.ubuntu.com/ubuntu noble-security main restricted universe multiverse
+
+Docker:
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor > docker.gpg
+apt-key add docker.gpg
+aptly mirror create -architectures=amd64,arm64 docker-noble \
+https://download.docker.com/linux/ubuntu noble stable
+
+NVIDIA (CUDA):
+aptly mirror create -architectures=amd64 nvidia-amd64 \
+https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64 /
+aptly mirror create -architectures=arm64 nvidia-arm64 \
+https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa /
+
+
+xtradeb/apps PPA
+aptly mirror create -architectures=amd64 xtradeb \
+http://ppa.launchpad.net/xtradeb/apps/ubuntu noble main
+
+8. DAILY SYNC + SNAPSHOT SCRIPT
+--------------------------------
+Create /usr/local/bin/aptly-sync.sh with the following content:
+
+#!/bin/bash
+DATE=$(date +%Y-%m-%d)
+LOG="/var/log/aptly-sync.log"
+echo "==== START $DATE ====" >> $LOG
+# Update mirrors
+aptly mirror update ubuntu-noble >> $LOG 2>&1
+aptly mirror update ubuntu-noble-updates >> $LOG 2>&1
+aptly mirror update ubuntu-noble-security >> $LOG 2>&1
+aptly mirror update docker-noble >> $LOG 2>&1
+aptly mirror update nvidia-amd64 >> $LOG 2>&1
+aptly mirror update nvidia-arm64 >> $LOG 2>&1
+aptly mirror update xtradeb >> $LOG 2>&1
+
+# Create snapshots
+for repo in ubuntu-noble ubuntu-noble-updates ubuntu-noble-security docker-noble nvidia-amd64 nvidia-arm64 xtradeb
+do
+  aptly snapshot create ${repo}-$DATE from mirror $repo >> $LOG 2>&1
+done
+
+# Merge Ubuntu repos into one
+aptly snapshot merge ubuntu-full-$DATE \
+  ubuntu-noble-$DATE \
+  ubuntu-noble-updates-$DATE \
+  ubuntu-noble-security-$DATE >> $LOG 2>&1
+
+# Publish snapshot (signed)
+aptly publish snapshot \
+  -distribution=noble \
+  -architectures="amd64,arm64" \
+  -gpg-key="Offline Mirror" \
+  ubuntu-full-$DATE >> $LOG 2>&1
+
+STATUS_FILE="/mnt/mirror/status.json"
+
+if [ $? -eq 0 ]; then
+  cat <<EOF > $STATUS_FILE
+{
+  "status": "ok",
+  "last_run": "$(date -Iseconds)"
+}
+EOF
+else
+  cat <<EOF > $STATUS_FILE
+{
+  "status": "failed",
+  "last_run": "$(date -Iseconds)"
+}
+EOF
+fi
+
+echo "==== END $DATE ====" >> $LOG
+
+Cleanup (optional - add to script to keep last 7 days):
+aptly snapshot list | grep ubuntu-full | head -n -7 | awk '{print $1}' | xargs -r aptly snapshot drop
+
+Make it executable:
+chmod +x /usr/local/bin/aptly-sync.sh
+
+9. SYSTEMD SERVICE (RUNS MIRROR SYNC)
+--------------------------------------
+sudo nano /etc/systemd/system/aptly-sync.service
+
+[Unit]
+Description=Aptly Mirror Sync and Snapshot
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/aptly-sync.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+# Hardening (recommended)
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+
+# Logging
+StandardOutput=append:/var/log/aptly-sync.log
+StandardError=append:/var/log/aptly-sync.log
+
+10. SYSTEMD TIMER (DAILY SCHEDULE)
+-----------------------------------
+sudo nano /etc/systemd/system/aptly-sync.timer
+
+[Unit]
+Description=Daily Aptly Sync
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target
+
+Enable and start:
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable --now aptly-sync.timer
+systemctl list-timers
+
+Status endpoint will be available at:
+http://<server>/status.json
+
+===============================================
+MONITORING
+===============================================
+
+11. PROMETHEUS MONITORING
+--------------------------
+sudo apt install prometheus-node-exporter
+
+12. CUSTOM METRICS EXPORTER (FOR APTLY)
+----------------------------------------
+Create /usr/local/bin/aptly-metrics.sh:
+
+#!/bin/bash
+
+STATUS_FILE="/mnt/mirror/status.json"
+METRIC_FILE="/var/lib/node_exporter/textfile_collector/aptly.prom"
+
+mkdir -p /var/lib/node_exporter/textfile_collector
+
+STATUS=$(jq -r .status $STATUS_FILE 2>/dev/null)
+LAST_RUN=$(jq -r .last_run $STATUS_FILE 2>/dev/null)
+
+if [ "$STATUS" == "ok" ]; then
+  STATUS_VAL=1
+else
+  STATUS_VAL=0
+fi
+
+LAST_RUN_EPOCH=$(date -d "$LAST_RUN" +%s 2>/dev/null || echo 0)
+NOW=$(date +%s)
+AGE=$((NOW - LAST_RUN_EPOCH))
+
+cat <<EOF > $METRIC_FILE
+aptly_sync_success $STATUS_VAL
+aptly_sync_age_seconds $AGE
+EOF
+
+Make it executable:
+chmod +x /usr/local/bin/aptly-metrics.sh
+
+Create systemd service /etc/systemd/system/aptly-metrics.service:
+[Unit]
+Description=Generate Aptly Prometheus Metrics
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/aptly-metrics.sh
+
+Create systemd timer /etc/systemd/system/aptly-metrics.timer:
+
+[Unit]
+Description=Generate Aptly Prometheus Metrics Timer
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=1m
+
+[Install]
+WantedBy=timers.target
+
+Enable and start:
+sudo systemctl enable --now aptly-metrics.timer
+
+13. PROMETHEUS CONFIGURATION
+-----------------------------
+Edit /etc/prometheus/prometheus.yml and add:
+
+- job_name: 'aptly-mirror'
+  static_configs:
+    - targets: ['localhost:9100']
+
+Restart Prometheus:
+sudo systemctl restart prometheus
+
+14. ALERTING RULES (HIGHLY RECOMMENDED)
+----------------------------------------
+Add to Prometheus alerting rules:
+- alert: AptlySyncFailed
+  expr: aptly_sync_success == 0
+  for: 10m
+  labels:
+    severity: critical
+  annotations:
+    description: "Aptly sync failed"
+
+- alert: AptlySyncStale
+  expr: aptly_sync_age_seconds > 86400
+  for: 1h
+  labels:
+    severity: warning
+
+===============================================
+BACK ON THE ROCKY HOST
+===============================================
+
+15. SYSTEMD INTEGRATION (ROCKY + PODMAN)
+-----------------------------------------
+podman generate systemd --name aptly --files --new
+sudo mv container-aptly.service /etc/systemd/system/
+sudo systemctl enable --now container-aptly
+
+16. NGINX REVERSE PROXY (ON ROCKY HOST)
+----------------------------------------
+sudo dnf install nginx -y
+
+Reverse proxy to container:
+sudo nano /etc/nginx/conf.d/aptly.conf
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+    # caching + compression
+    gzip on;
+    gzip_types text/plain application/json;
+    location ~* (Packages|Release) {
+        add_header Cache-Control "no-cache";
+    }
+}
+
+===============================================
+OFFLINE CLIENT SETUP
+===============================================
+
+17. CONFIGURE CLIENTS TO USE THE MIRROR
+----------------------------------------
+
+Copy the GPG public key to the client:
+sudo cp public.key /usr/share/keyrings/mirror.gpg
+
+Add to /etc/apt/sources.list:
+deb [signed-by=/usr/share/keyrings/mirror.gpg] http://<mirror-ip>/ noble main

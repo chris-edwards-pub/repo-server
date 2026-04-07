@@ -1,0 +1,108 @@
+---
+- name: Install Prometheus node exporter
+  dnf:
+    name: golang-github-prometheus-node-exporter
+    state: present
+  when: monitoring_enabled | default(true)
+
+- name: Create textfile collector directory
+  file:
+    path: /var/lib/node_exporter/textfile_collector
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Deploy RPM metrics script
+  template:
+    src: rpm-metrics.sh.j2
+    dest: /usr/local/bin/rpm-metrics.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Deploy DEB metrics script
+  template:
+    src: deb-metrics.sh.j2
+    dest: /usr/local/bin/deb-metrics.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Deploy RPM metrics systemd service
+  copy:
+    dest: /etc/systemd/system/rpm-metrics.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Generate RPM Repository Prometheus Metrics
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/rpm-metrics.sh
+  notify: reload systemd
+
+- name: Deploy RPM metrics systemd timer
+  copy:
+    dest: /etc/systemd/system/rpm-metrics.timer
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Generate RPM Repository Metrics Timer
+
+      [Timer]
+      OnBootSec=2m
+      OnUnitActiveSec=1m
+
+      [Install]
+      WantedBy=timers.target
+  notify: reload systemd
+
+- name: Deploy DEB metrics systemd service
+  copy:
+    dest: /etc/systemd/system/deb-metrics.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Generate DEB Repository Prometheus Metrics
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/deb-metrics.sh
+  notify: reload systemd
+
+- name: Deploy DEB metrics systemd timer
+  copy:
+    dest: /etc/systemd/system/deb-metrics.timer
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Generate DEB Repository Metrics Timer
+
+      [Timer]
+      OnBootSec=2m
+      OnUnitActiveSec=1m
+
+      [Install]
+      WantedBy=timers.target
+  notify: reload systemd
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Enable and start metrics timers
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop:
+    - rpm-metrics.timer
+    - deb-metrics.timer
+
+- name: Enable and start node_exporter
+  systemd:
+    name: node_exporter
+    enabled: yes
+    state: started
+  when: monitoring_enabled | default(true)

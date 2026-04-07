@@ -1,0 +1,36 @@
+[Unit]
+Description=Rocky Linux Repository Mirror Sync
+Wants=network-online.target
+After=network-online.target
+Documentation=https://github.com/your-org/repo-server
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/rpm-sync.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+# Resource limits
+MemoryMax=2G
+CPUQuota=50%
+
+# Hardening
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+ReadOnlyPaths=/etc
+ReadWritePaths={{ repo_base_path }}
+
+# Logging
+StandardOutput=append:{{ repo_base_path }}/logs/rpm-sync.log
+StandardError=append:{{ repo_base_path }}/logs/rpm-sync.log
+SyslogIdentifier=rpm-sync
+
+# Restart policy
+Restart=on-failure
+RestartSec=300
+
+[Install]
+WantedBy=multi-user.target

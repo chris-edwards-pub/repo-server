@@ -1,0 +1,39 @@
+# Ansible specific
+*.retry
+.vault_pass
+*.pyc
+__pycache__/
+
+# Logs
+*.log
+
+# Temporary files
+/tmp/
+*.tmp
+
+# Local overrides
+inventory/local/
+*.local.yml
+
+# SSH keys
+*.pem
+*.key
+id_rsa*
+
+# Sensitive data
+secrets/
+vault/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Fact cache
+/tmp/ansible_fact_cache

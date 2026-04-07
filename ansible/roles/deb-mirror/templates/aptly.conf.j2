@@ -1,0 +1,10 @@
+{
+  "rootDir": "/aptly",
+  "architectures": {{ repo_deb_architectures | to_json }},
+  "gpgDisableSign": false,
+  "gpgDisableVerify": false,
+  "downloadConcurrency": 4,
+  "downloadSpeedLimit": 0,
+  "ppaDistributorID": "ubuntu",
+  "ppaCodename": "{{ repo_ubuntu_release }}"
+}

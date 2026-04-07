@@ -1,0 +1,72 @@
+---
+- name: Include GPG setup tasks
+  include_tasks: gpg-setup.yml
+  tags: gpg
+
+- name: Deploy Aptly configuration
+  template:
+    src: aptly.conf.j2
+    dest: "{{ repo_base_path }}/aptly/config/aptly.conf"
+    mode: '0644'
+    owner: root
+    group: root
+
+- name: Include container setup tasks
+  include_tasks: container.yml
+  tags: container
+
+- name: Wait for Aptly container to be ready
+  wait_for:
+    port: 8080
+    host: 127.0.0.1
+    delay: 5
+    timeout: 60
+  tags: container
+
+- name: Deploy Aptly sync script
+  template:
+    src: aptly-sync.sh.j2
+    dest: /usr/local/bin/aptly-sync.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Deploy Aptly sync systemd service
+  template:
+    src: aptly-sync.service.j2
+    dest: /etc/systemd/system/aptly-sync.service
+    mode: '0644'
+    owner: root
+    group: root
+  notify: reload systemd
+
+- name: Deploy Aptly sync systemd timer
+  template:
+    src: aptly-sync.timer.j2
+    dest: /etc/systemd/system/aptly-sync.timer
+    mode: '0644'
+    owner: root
+    group: root
+  notify: reload systemd
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Enable and start Aptly sync timer
+  systemd:
+    name: aptly-sync.timer
+    enabled: yes
+    state: started
+
+- name: Create DEB status file placeholder
+  copy:
+    content: |
+      {
+        "status": "pending",
+        "last_run": "{{ ansible_date_time.iso8601 }}",
+        "type": "deb"
+      }
+    dest: "{{ repo_base_path }}/aptly/status.json"
+    mode: '0644'
+    force: no

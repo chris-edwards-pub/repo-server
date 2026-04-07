@@ -1,0 +1,76 @@
+---
+- name: Create repository base directory
+  file:
+    path: "{{ repo_base_path }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Create RPM repository base directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "{{ repo_base_path }}/rpm"
+    - "{{ repo_base_path }}/rpm/rocky"
+    - "{{ repo_base_path }}/rpm/rocky/{{ repo_rocky_version }}"
+    - "{{ repo_base_path }}/rpm/rocky/{{ repo_rocky_version }}/BaseOS"
+    - "{{ repo_base_path }}/rpm/rocky/{{ repo_rocky_version }}/AppStream"
+    - "{{ repo_base_path }}/rpm/rocky/{{ repo_rocky_version }}/extras"
+    - "{{ repo_base_path }}/rpm/epel"
+    - "{{ repo_base_path }}/rpm/epel/{{ repo_epel_version }}"
+    - "{{ repo_base_path }}/rpm/custom"
+
+- name: Create architecture-specific directories for Rocky Linux repos
+  file:
+    path: "{{ repo_base_path }}/rpm/rocky/{{ repo_rocky_version }}/{{ item[0] }}/{{ item[1] }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop: "{{ ['BaseOS', 'AppStream', 'extras'] | product(repo_rpm_architectures) | list }}"
+
+- name: Create architecture-specific directories for EPEL repos
+  file:
+    path: "{{ repo_base_path }}/rpm/epel/{{ repo_epel_version }}/{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop: "{{ repo_rpm_architectures }}"
+
+- name: Create DEB repository directories (Aptly)
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "{{ repo_base_path }}/aptly"
+    - "{{ repo_base_path }}/aptly/config"
+    - "{{ repo_base_path }}/aptly/data"
+    - "{{ repo_base_path }}/aptly/public"
+
+- name: Set SELinux contexts for RPM repos
+  sefcontext:
+    target: "{{ repo_base_path }}/rpm(/.*)?"
+    setype: httpd_sys_content_t
+    state: present
+  when: selinux_enabled | default(true)
+
+- name: Set SELinux contexts for Aptly container
+  sefcontext:
+    target: "{{ repo_base_path }}/aptly(/.*)?"
+    setype: container_file_t
+    state: present
+  when: selinux_enabled | default(true)
+
+- name: Apply SELinux contexts
+  command: restorecon -Rv {{ repo_base_path }}
+  when: selinux_enabled | default(true)
+  changed_when: false

@@ -1,0 +1,41 @@
+---
+- name: Ensure NGINX is installed
+  dnf:
+    name: nginx
+    state: present
+
+- name: Deploy repository mirror NGINX configuration
+  template:
+    src: repo-mirror.conf.j2
+    dest: /etc/nginx/conf.d/repo-mirror.conf
+    mode: '0644'
+    owner: root
+    group: root
+  notify: reload nginx
+
+- name: Remove default NGINX configuration
+  file:
+    path: /etc/nginx/conf.d/default.conf
+    state: absent
+  notify: reload nginx
+
+- name: Ensure NGINX log directory exists
+  file:
+    path: /var/log/nginx
+    state: directory
+    mode: '0755'
+    owner: nginx
+    group: nginx
+
+- name: Set SELinux boolean for NGINX network connections
+  seboolean:
+    name: httpd_can_network_connect
+    state: yes
+    persistent: yes
+  when: selinux_enabled | default(true)
+
+- name: Enable and start NGINX
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started

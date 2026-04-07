@@ -1,0 +1,113 @@
+---
+# Repository mirror server configuration
+
+# Base paths
+repo_base_path: /repos
+repo_server_hostname: repo-mirror.local  # CHANGE THIS to your server hostname/IP
+
+# RPM repository configuration
+repo_rpm_architectures:
+  - x86_64
+  - aarch64
+repo_rocky_version: 10
+repo_epel_version: 10
+
+# RPM repositories to sync
+rpm_repos:
+  - name: baseos
+    repoid: baseos
+    description: "Rocky Linux 10 BaseOS"
+  - name: appstream
+    repoid: appstream
+    description: "Rocky Linux 10 AppStream"
+  - name: extras
+    repoid: extras
+    description: "Rocky Linux 10 Extras"
+  - name: epel
+    repoid: epel
+    description: "EPEL 10"
+
+# DEB repository configuration
+repo_deb_architectures:
+  - amd64
+  - arm64
+repo_ubuntu_release: noble
+repo_ubuntu_version: "24.04"
+
+# GPG key configuration for DEB repos
+aptly_gpg_key_name: "Offline Mirror"
+aptly_gpg_key_email: "admin@{{ repo_server_hostname }}"
+
+# DEB mirrors to create
+deb_mirrors:
+  - name: ubuntu-noble
+    url: "http://archive.ubuntu.com/ubuntu"
+    distribution: noble
+    components: "main restricted universe multiverse"
+    architectures: "{{ repo_deb_architectures }}"
+
+  - name: ubuntu-noble-updates
+    url: "http://archive.ubuntu.com/ubuntu"
+    distribution: noble-updates
+    components: "main restricted universe multiverse"
+    architectures: "{{ repo_deb_architectures }}"
+
+  - name: ubuntu-noble-security
+    url: "http://security.ubuntu.com/ubuntu"
+    distribution: noble-security
+    components: "main restricted universe multiverse"
+    architectures: "{{ repo_deb_architectures }}"
+
+  - name: docker-noble
+    url: "https://download.docker.com/linux/ubuntu"
+    distribution: noble
+    components: "stable"
+    architectures: "{{ repo_deb_architectures }}"
+    gpg_url: "https://download.docker.com/linux/ubuntu/gpg"
+
+  - name: nvidia-amd64
+    url: "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64"
+    distribution: "/"
+    components: ""
+    architectures:
+      - amd64
+
+  - name: nvidia-arm64
+    url: "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa"
+    distribution: "/"
+    components: ""
+    architectures:
+      - arm64
+
+  - name: xtradeb
+    url: "http://ppa.launchpad.net/xtradeb/apps/ubuntu"
+    distribution: noble
+    components: "main"
+    architectures:
+      - amd64
+
+# Sync schedules (systemd OnCalendar format)
+rpm_sync_schedule: "*-*-* 02:00:00"
+deb_sync_schedule: "*-*-* 03:00:00"
+
+# Bandwidth limiting (optional, in MB/s)
+# rpm_download_rate: 10
+# deb_download_rate: 10
+
+# Monitoring
+monitoring_enabled: true
+prometheus_node_exporter_port: 9100
+
+# NGINX configuration
+nginx_worker_processes: auto
+nginx_worker_connections: 1024
+nginx_enable_gzip: true
+
+# Firewall configuration
+firewall_enabled: true
+firewall_allowed_ports:
+  - 80/tcp
+  - 443/tcp
+
+# SELinux configuration
+selinux_enabled: true

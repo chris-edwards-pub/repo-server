@@ -1,0 +1,48 @@
+---
+- name: Deploy RPM sync script
+  template:
+    src: rpm-sync.sh.j2
+    dest: /usr/local/bin/rpm-sync.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Deploy RPM sync systemd service
+  template:
+    src: rpm-sync.service.j2
+    dest: /etc/systemd/system/rpm-sync.service
+    mode: '0644'
+    owner: root
+    group: root
+  notify: reload systemd
+
+- name: Deploy RPM sync systemd timer
+  template:
+    src: rpm-sync.timer.j2
+    dest: /etc/systemd/system/rpm-sync.timer
+    mode: '0644'
+    owner: root
+    group: root
+  notify: reload systemd
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Enable and start RPM sync timer
+  systemd:
+    name: rpm-sync.timer
+    enabled: yes
+    state: started
+
+- name: Create RPM status file placeholder
+  copy:
+    content: |
+      {
+        "status": "pending",
+        "last_run": "{{ ansible_date_time.iso8601 }}",
+        "type": "rpm"
+      }
+    dest: "{{ repo_base_path }}/rpm/status.json"
+    mode: '0644'
+    force: no

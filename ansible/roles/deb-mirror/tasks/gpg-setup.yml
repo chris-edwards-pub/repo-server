@@ -1,0 +1,48 @@
+---
+- name: Check if GPG key already exists
+  stat:
+    path: "{{ repo_base_path }}/aptly/config/public.key"
+  register: gpg_key_check
+
+- name: Generate GPG key for repository signing
+  shell: |
+    gpg --batch --gen-key <<EOF
+    Key-Type: RSA
+    Key-Length: 4096
+    Subkey-Type: RSA
+    Subkey-Length: 4096
+    Name-Real: {{ aptly_gpg_key_name }}
+    Name-Email: {{ aptly_gpg_key_email }}
+    Expire-Date: 0
+    %no-protection
+    %commit
+    EOF
+  when: not gpg_key_check.stat.exists
+  register: gpg_gen
+  changed_when: gpg_gen.rc == 0
+
+- name: Export public GPG key
+  shell: |
+    gpg --export -a "{{ aptly_gpg_key_name }}" > {{ repo_base_path }}/aptly/config/public.key
+  args:
+    creates: "{{ repo_base_path }}/aptly/config/public.key"
+
+- name: Export private GPG key
+  shell: |
+    gpg --export-secret-keys -a "{{ aptly_gpg_key_name }}" > {{ repo_base_path }}/aptly/config/private.key
+  args:
+    creates: "{{ repo_base_path }}/aptly/config/private.key"
+
+- name: Set permissions on private key
+  file:
+    path: "{{ repo_base_path }}/aptly/config/private.key"
+    mode: '0600'
+    owner: root
+    group: root
+
+- name: Copy public key to web-accessible location
+  copy:
+    src: "{{ repo_base_path }}/aptly/config/public.key"
+    dest: "{{ repo_base_path }}/aptly/public/public.key"
+    mode: '0644'
+    remote_src: yes
