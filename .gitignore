@@ -1,0 +1,294 @@
+# Repository Mirror Server - .gitignore
+
+# ============================================
+# Repository Data (DO NOT COMMIT PACKAGES)
+# ============================================
+# Mirrored repository data
+/repos/
+/data/repos/
+
+# RPM repository data
+*.rpm
+*.drpm
+repodata/
+
+# DEB repository data
+*.deb
+*.udeb
+*.ddeb
+pool/
+dists/
+*.gpg
+
+# ============================================
+# Logs
+# ============================================
+*.log
+*.log.*
+/var/log/
+logs/
+/log/
+*.log.[0-9]*
+
+# Ansible logs
+ansible.log
+*.retry
+
+# Sync logs
+*sync.log
+*sync-*.log
+
+# ============================================
+# Ansible
+# ============================================
+# Retry files
+*.retry
+
+# Vault password files
+.vault_pass
+.vault_password
+vault_pass.txt
+vault-password.txt
+*vault*.key
+
+# Fact cache
+*.fact_cache
+fact_cache/
+
+# Ansible Galaxy
+.galaxy_cache/
+
+# Local inventory overrides
+inventory/local/
+inventory/*.local
+inventory/production/hosts.local.yml
+
+# Local variable overrides
+**/group_vars/*.local.yml
+**/host_vars/*.local.yml
+ansible/inventory/**/*.local.yml
+
+# ============================================
+# Python
+# ============================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# PyCharm
+.idea/
+
+# ============================================
+# Security & Secrets
+# ============================================
+# Private keys and certificates
+*.key
+*.pem
+*.crt
+*.csr
+*.p12
+*.pfx
+*.der
+id_rsa*
+id_ed25519*
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# GPG keys (except public keys served to clients)
+*.asc
+!public.key
+!ansible/roles/*/files/*.asc
+
+# SSH keys
+ssh_keys/
+.ssh/
+
+# Credentials
+credentials.yml
+secrets.yml
+*credentials*.yml
+*secrets*.yml
+
+# ============================================
+# Backups
+# ============================================
+*.bak
+*.backup
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# Configuration backups
+*.repo.bak
+*.list.bak
+sources.list.bak
+backup-*/
+
+# ============================================
+# OS-Specific
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================================
+# Editors & IDEs
+# ============================================
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+.netrwhist
+
+# Emacs
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+.elc
+auto-save-list
+tramp
+
+# VSCode
+.vscode/
+*.code-workspace
+.history/
+
+# JetBrains IDEs (PyCharm, IntelliJ, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# Container/Podman
+# ============================================
+# Container volumes (if stored locally)
+volumes/
+
+# Podman/Docker compose overrides
+docker-compose.override.yml
+docker-compose.local.yml
+podman-compose.override.yml
+
+# ============================================
+# Temporary Files
+# ============================================
+tmp/
+temp/
+*.tmp
+.cache/
+cache/
+
+# PID files
+*.pid
+
+# Lock files
+*.lock
+.~lock.*
+
+# ============================================
+# Monitoring & Metrics
+# ============================================
+# Prometheus data
+prometheus_data/
+*.tsdb
+
+# Grafana data
+grafana_data/
+
+# ============================================
+# Testing & Development
+# ============================================
+# Test outputs
+test-results/
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Development databases
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# Documentation Build Artifacts
+# ============================================
+_build/
+_static/
+_templates/
+
+# ============================================
+# Project-Specific Overrides
+# ============================================
+# Local settings that override defaults
+settings.local.yml
+config.local.yml
+*local.conf
+
+# Personal notes (not for repo)
+NOTES.md
+TODO.local.md
+scratch/
+personal/
+
+# Claude Code artifacts
+.claude/

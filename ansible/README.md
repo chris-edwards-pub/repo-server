@@ -22,7 +22,7 @@ This Ansible project deploys a complete **multi-architecture** repository mirror
 
 **Total Architecture Support**: Full multi-arch for both x86_64/amd64 and aarch64/arm64 systems!
 
-> 📘 **See [ARCHITECTURE_SUPPORT.md](../ARCHITECTURE_SUPPORT.md) for complete multi-architecture documentation**
+> 📘 **See [README.md - Architecture](../README.md#architecture) for complete multi-architecture documentation**
 
 ### 🏗️ Architecture
 

@@ -1,0 +1,375 @@
+================================================================================
+Ubuntu / Debian Manual Client Configuration
+================================================================================
+
+This guide provides step-by-step manual configuration instructions for
+configuring Ubuntu or Debian clients to use a local repository mirror.
+
+Use these instructions if the automated configure-ubuntu-client.sh script
+doesn't work for your environment or if you prefer manual configuration.
+
+================================================================================
+PREREQUISITES
+================================================================================
+
+- Ubuntu 24.04 (noble) or compatible Debian distribution
+- Root or sudo access
+- curl installed (sudo apt install curl)
+- Network connectivity to the mirror server
+- Mirror server hostname or IP address
+
+================================================================================
+STEP 1: BACKUP EXISTING SOURCES
+================================================================================
+
+Create a backup directory and copy existing sources:
+
+  sudo mkdir -p /etc/apt/sources.list.d/backup
+  sudo cp /etc/apt/sources.list /etc/apt/sources.list.d/backup/
+  sudo cp /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/backup/ 2>/dev/null || true
+
+This ensures you can revert to the original configuration if needed.
+
+================================================================================
+STEP 2: DOWNLOAD AND INSTALL GPG KEY
+================================================================================
+
+Download the GPG public key from the mirror server and install it:
+
+  curl -fsSL http://repo-mirror.local/public.key | \
+    sudo gpg --dearmor -o /usr/share/keyrings/local-mirror.gpg
+
+IMPORTANT: Replace "repo-mirror.local" with your actual mirror server
+hostname or IP address.
+
+Verify the key was installed:
+
+  ls -l /usr/share/keyrings/local-mirror.gpg
+
+Set correct permissions:
+
+  sudo chmod 644 /usr/share/keyrings/local-mirror.gpg
+
+================================================================================
+STEP 3: CREATE LOCAL MIRROR SOURCE FILE
+================================================================================
+
+Create /etc/apt/sources.list.d/local-mirror.list:
+
+  echo "deb [signed-by=/usr/share/keyrings/local-mirror.gpg] http://repo-mirror.local/deb/ noble main" | \
+    sudo tee /etc/apt/sources.list.d/local-mirror.list
+
+IMPORTANT:
+  - Replace "repo-mirror.local" with your mirror server hostname/IP
+  - Replace "noble" with your Ubuntu release codename if different:
+      * Ubuntu 24.04 = noble
+      * Ubuntu 22.04 = jammy
+      * Ubuntu 20.04 = focal
+
+To find your release codename:
+
+  lsb_release -cs
+
+================================================================================
+STEP 4: VERIFY SOURCE FILE
+================================================================================
+
+Check that the file was created correctly:
+
+  cat /etc/apt/sources.list.d/local-mirror.list
+
+Should show:
+  deb [signed-by=/usr/share/keyrings/local-mirror.gpg] http://repo-mirror.local/deb/ noble main
+
+================================================================================
+STEP 5: TEST CONNECTIVITY TO MIRROR
+================================================================================
+
+Verify you can reach the mirror server:
+
+  curl -I http://repo-mirror.local/deb/dists/noble/Release
+
+You should receive an HTTP 200 OK response.
+
+Test GPG key availability:
+
+  curl -I http://repo-mirror.local/public.key
+
+================================================================================
+STEP 6 (OPTIONAL): DISABLE UPSTREAM REPOSITORIES
+================================================================================
+
+For air-gapped environments or to ensure all packages come from the local
+mirror, disable upstream repositories:
+
+  # Disable entries in sources.list
+  sudo sed -i 's/^deb /#deb /g' /etc/apt/sources.list
+  sudo sed -i 's/^deb-src /#deb-src /g' /etc/apt/sources.list
+
+  # Disable other sources (except local mirror)
+  for file in /etc/apt/sources.list.d/*.list; do
+    if [ "$file" != "/etc/apt/sources.list.d/local-mirror.list" ]; then
+      sudo sed -i 's/^deb /#deb /g' "$file"
+      sudo sed -i 's/^deb-src /#deb-src /g' "$file"
+    fi
+  done
+
+CAUTION: Only do this if your local mirror has all required packages.
+
+================================================================================
+STEP 7: UPDATE PACKAGE LISTS
+================================================================================
+
+Update the APT package lists from the new source:
+
+  sudo apt update
+
+This may take a few moments as APT downloads repository metadata.
+
+If successful, you should see output like:
+  Get:1 http://repo-mirror.local/deb noble InRelease [...]
+  Get:2 http://repo-mirror.local/deb noble/main amd64 Packages [...]
+
+================================================================================
+STEP 8: VERIFY CONFIGURATION
+================================================================================
+
+Check that the local repository is active:
+
+  apt-cache policy
+
+Look for your mirror server in the package files list.
+
+Check a specific package source:
+
+  apt-cache policy vim
+
+The output should show URLs pointing to your mirror server.
+
+List all configured sources:
+
+  grep -r "^deb " /etc/apt/sources.list /etc/apt/sources.list.d/
+
+================================================================================
+STEP 9: TEST PACKAGE INSTALLATION
+================================================================================
+
+Test that packages can be installed from the local mirror:
+
+  # Download only (doesn't install)
+  sudo apt install --download-only vim
+
+  # Full installation
+  sudo apt install -y vim
+
+Verify the package came from the local mirror:
+
+  apt-cache policy vim
+
+Should show your mirror server URL in the version table.
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Issue: "Failed to fetch Release file"
+Solution:
+  - Verify mirror server is running
+  - Check network connectivity: ping repo-mirror.local
+  - Verify firewall rules on mirror server
+  - Check DNS resolution: nslookup repo-mirror.local
+  - Verify release codename: lsb_release -cs
+
+Issue: "GPG error: NO_PUBKEY"
+Solution:
+  - Re-download the GPG key:
+      curl -fsSL http://repo-mirror.local/public.key | \
+        sudo gpg --dearmor -o /usr/share/keyrings/local-mirror.gpg
+  - Verify key permissions:
+      sudo chmod 644 /usr/share/keyrings/local-mirror.gpg
+  - Check key file exists:
+      ls -l /usr/share/keyrings/local-mirror.gpg
+
+Issue: "Unable to locate package"
+Solution:
+  - Verify package exists on mirror
+  - Update package lists: sudo apt update
+  - Check repository is configured: apt-cache policy
+  - Try: apt search <package>
+
+Issue: "Release file is not signed"
+Solution:
+  - Verify GPG key is correctly referenced in sources.list.d file
+  - Check signed-by path: /usr/share/keyrings/local-mirror.gpg
+  - Ensure key was downloaded and converted correctly
+
+Issue: "Connection refused" or "Connection timeout"
+Solution:
+  - Verify mirror server is running:
+      curl http://repo-mirror.local/health
+  - Check network connectivity
+  - Verify no firewall blocking port 80
+  - Check mirror server logs
+
+================================================================================
+REVERTING TO UPSTREAM REPOSITORIES
+================================================================================
+
+If you need to revert to upstream repositories:
+
+1. Remove the local mirror configuration:
+
+     sudo rm /etc/apt/sources.list.d/local-mirror.list
+     sudo rm /usr/share/keyrings/local-mirror.gpg
+
+2. Restore backup sources:
+
+     sudo cp /etc/apt/sources.list.d/backup/sources.list /etc/apt/sources.list
+
+3. If you disabled upstream repos, re-enable them:
+
+     sudo sed -i 's/^#deb /deb /g' /etc/apt/sources.list
+
+     for file in /etc/apt/sources.list.d/*.list; do
+       sudo sed -i 's/^#deb /deb /g' "$file"
+     done
+
+4. Update package lists:
+
+     sudo apt update
+
+5. Verify:
+
+     apt-cache policy
+
+   Should show official Ubuntu/Debian mirrors.
+
+================================================================================
+ADDITIONAL NOTES
+================================================================================
+
+Multiple Components:
+  - If mirror has multiple components (main, universe, restricted, multiverse):
+      deb [signed-by=/usr/share/keyrings/local-mirror.gpg] http://repo-mirror.local/deb/ noble main universe restricted multiverse
+
+Source Packages:
+  - To enable source package downloads, add deb-src line:
+      deb-src [signed-by=/usr/share/keyrings/local-mirror.gpg] http://repo-mirror.local/deb/ noble main
+
+Proxy Configuration:
+  - If using a proxy, create /etc/apt/apt.conf.d/proxy:
+      Acquire::http::Proxy "http://proxy.example.com:8080";
+      Acquire::https::Proxy "http://proxy.example.com:8080";
+
+Repository Priority:
+  - To prioritize local mirror, create /etc/apt/preferences.d/local-mirror:
+      Package: *
+      Pin: origin repo-mirror.local
+      Pin-Priority: 1000
+
+Performance:
+  - Enable parallel downloads in /etc/apt/apt.conf.d/99paralleldownloads:
+      APT::Acquire::Retries "3";
+      APT::Acquire::Queue-Mode "host";
+      Acquire::http::Pipeline-Depth "5";
+
+Monitoring:
+  - Monitor mirror sync status on mirror server
+  - Check disk space on mirror server
+  - Monitor repository access logs
+  - Check APT logs: /var/log/apt/
+
+Security:
+  - Always use signed-by with GPG key
+  - Verify GPG key fingerprint matches expected value
+  - Use HTTPS if available (https:// instead of http://)
+  - Implement network policies for air-gapped environments
+
+Architecture Support:
+  - APT automatically uses the correct architecture (amd64/arm64)
+  - Check your architecture: dpkg --print-architecture
+  - Verify mirror has packages for your architecture
+
+================================================================================
+REFERENCE INFORMATION
+================================================================================
+
+Repository Location on Mirror:
+  - Ubuntu packages: /deb/
+  - Release files:   /deb/dists/noble/
+  - Package pools:   /deb/pool/
+
+GPG Key Location:
+  - On mirror:  http://repo-mirror.local/public.key
+  - On client:  /usr/share/keyrings/local-mirror.gpg
+
+Configuration Files:
+  - Main sources:     /etc/apt/sources.list
+  - Additional:       /etc/apt/sources.list.d/*.list
+  - Local mirror:     /etc/apt/sources.list.d/local-mirror.list
+  - Backup location:  /etc/apt/sources.list.d/backup/
+  - APT config:       /etc/apt/apt.conf.d/
+
+Ubuntu Release Codenames:
+  - 24.04 LTS: noble
+  - 22.04 LTS: jammy
+  - 20.04 LTS: focal
+  - 18.04 LTS: bionic (EOL)
+
+Useful Commands:
+  - Update package lists:    sudo apt update
+  - List upgradable:         apt list --upgradable
+  - Search packages:         apt search <package>
+  - Package information:     apt show <package>
+  - Package policy:          apt-cache policy <package>
+  - List sources:            apt-cache policy
+  - Clean cache:             sudo apt clean
+  - Remove unused:           sudo apt autoremove
+  - Fix broken:              sudo apt --fix-broken install
+
+Log Files:
+  - APT terminal log:   /var/log/apt/term.log
+  - APT history:        /var/log/apt/history.log
+  - dpkg log:           /var/log/dpkg.log
+
+================================================================================
+ADVANCED CONFIGURATION
+================================================================================
+
+Multiple Mirrors:
+  - You can configure multiple mirror sources
+  - APT will try them in order if one fails
+  - Add additional lines to sources.list.d/local-mirror.list
+
+Pin Preferences:
+  - Control which repository provides which packages
+  - Create /etc/apt/preferences.d/pinning file
+  - Example:
+      Package: *
+      Pin: origin repo-mirror.local
+      Pin-Priority: 900
+
+Authentication:
+  - If mirror requires authentication, add to URL:
+      deb [signed-by=/usr/share/keyrings/local-mirror.gpg] http://username:password@repo-mirror.local/deb/ noble main
+
+Custom Repositories:
+  - You can add multiple repositories to the same file
+  - Each repository should be on its own line
+  - Use same signed-by key if signing is consistent
+
+================================================================================
+SUPPORT
+================================================================================
+
+For more information and automated configuration:
+  - Use the automated script: configure-ubuntu-client.sh
+  - See: CLIENT_SETUP.md for comprehensive documentation
+  - See: ansible/README.md for mirror server setup
+
+Release Codename Detection:
+  - Ubuntu: lsb_release -cs
+  - Debian: cat /etc/debian_version && lsb_release -cs
+  - OS info: cat /etc/os-release
+
+================================================================================

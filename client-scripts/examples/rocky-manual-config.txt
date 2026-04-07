@@ -1,0 +1,289 @@
+================================================================================
+Rocky Linux / RHEL Manual Client Configuration
+================================================================================
+
+This guide provides step-by-step manual configuration instructions for
+configuring Rocky Linux, RHEL, or CentOS clients to use a local repository
+mirror.
+
+Use these instructions if the automated configure-rocky-client.sh script
+doesn't work for your environment or if you prefer manual configuration.
+
+================================================================================
+PREREQUISITES
+================================================================================
+
+- Rocky Linux 10, RHEL 10, or CentOS 10
+- Root or sudo access
+- Network connectivity to the mirror server
+- Mirror server hostname or IP address
+
+================================================================================
+STEP 1: BACKUP EXISTING REPOSITORIES
+================================================================================
+
+Create a backup directory and copy existing repository files:
+
+  sudo mkdir -p /etc/yum.repos.d/backup
+  sudo cp /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/
+
+This ensures you can revert to the original configuration if needed.
+
+================================================================================
+STEP 2: CREATE LOCAL MIRROR REPOSITORY FILE
+================================================================================
+
+Create /etc/yum.repos.d/local-mirror.repo with the following content:
+
+  sudo tee /etc/yum.repos.d/local-mirror.repo > /dev/null << 'EOF'
+  [local-baseos]
+  name=Local Mirror - Rocky Linux 10 BaseOS
+  baseurl=http://repo-mirror.local/rpm/rocky/10/BaseOS/$basearch
+  enabled=1
+  gpgcheck=1
+  gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+
+  [local-appstream]
+  name=Local Mirror - Rocky Linux 10 AppStream
+  baseurl=http://repo-mirror.local/rpm/rocky/10/AppStream/$basearch
+  enabled=1
+  gpgcheck=1
+  gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+
+  [local-extras]
+  name=Local Mirror - Rocky Linux 10 Extras
+  baseurl=http://repo-mirror.local/rpm/rocky/10/extras/$basearch
+  enabled=1
+  gpgcheck=1
+  gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+
+  [local-epel]
+  name=Local Mirror - EPEL 10
+  baseurl=http://repo-mirror.local/rpm/epel/10/$basearch
+  enabled=1
+  gpgcheck=1
+  gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-10
+  EOF
+
+IMPORTANT: Replace "repo-mirror.local" with your actual mirror server
+hostname or IP address.
+
+ARCHITECTURE NOTE: The $basearch variable automatically resolves to:
+  - x86_64 for Intel/AMD 64-bit systems
+  - aarch64 for ARM 64-bit systems
+
+================================================================================
+STEP 3: VERIFY REPOSITORY FILE
+================================================================================
+
+Check that the file was created correctly:
+
+  cat /etc/yum.repos.d/local-mirror.repo
+
+Verify the baseurl points to your mirror server.
+
+================================================================================
+STEP 4: TEST CONNECTIVITY TO MIRROR
+================================================================================
+
+Verify you can reach the mirror server:
+
+  curl -I http://repo-mirror.local/rpm/rocky/10/BaseOS/$(uname -m)/repodata/repomd.xml
+
+You should receive an HTTP 200 OK response.
+
+================================================================================
+STEP 5 (OPTIONAL): DISABLE UPSTREAM REPOSITORIES
+================================================================================
+
+For air-gapped environments or to ensure all packages come from the local
+mirror, disable upstream repositories:
+
+  # Disable Rocky Linux repos
+  sudo sed -i 's/^enabled=1/enabled=0/g' /etc/yum.repos.d/rocky*.repo
+
+  # Disable EPEL repo
+  sudo sed -i 's/^enabled=1/enabled=0/g' /etc/yum.repos.d/epel.repo
+
+CAUTION: Only do this if your local mirror has all required packages.
+
+================================================================================
+STEP 6: REFRESH REPOSITORY CACHE
+================================================================================
+
+Clean the DNF cache and rebuild metadata:
+
+  sudo dnf clean all
+  sudo dnf makecache
+
+This may take a few moments as DNF downloads repository metadata.
+
+================================================================================
+STEP 7: VERIFY CONFIGURATION
+================================================================================
+
+Check that the local repositories are active:
+
+  dnf repolist
+
+You should see:
+  - local-baseos
+  - local-appstream
+  - local-extras
+  - local-epel
+
+Check repository details:
+
+  dnf repolist -v | grep baseurl
+
+Verify the URLs point to your mirror server.
+
+================================================================================
+STEP 8: TEST PACKAGE INSTALLATION
+================================================================================
+
+Test that packages can be installed from the local mirror:
+
+  # Download only (doesn't install)
+  sudo dnf install --downloadonly vim
+
+  # Full installation
+  sudo dnf install -y vim
+
+Verify the package came from the local mirror:
+
+  dnf info vim | grep "From repo"
+
+Should show "local-baseos" or "local-appstream".
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Issue: "Cannot download repomd.xml"
+Solution:
+  - Verify mirror server is running
+  - Check network connectivity: ping repo-mirror.local
+  - Verify firewall rules on mirror server
+  - Check DNS resolution: nslookup repo-mirror.local
+
+Issue: "GPG key verification failed"
+Solution:
+  - Verify GPG keys exist:
+      ls -l /etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+      ls -l /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-10
+  - Import keys manually:
+      sudo rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+      sudo rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-10
+
+Issue: "Repository metadata not found"
+Solution:
+  - Verify repository structure on mirror server
+  - Check architecture matches: uname -m
+  - Verify mirror synchronization is complete
+
+Issue: "No package vim available"
+Solution:
+  - Verify package exists on mirror
+  - Check repository is enabled: dnf repolist
+  - Try: sudo dnf search vim
+
+================================================================================
+REVERTING TO UPSTREAM REPOSITORIES
+================================================================================
+
+If you need to revert to upstream repositories:
+
+1. Remove the local mirror configuration:
+
+     sudo rm /etc/yum.repos.d/local-mirror.repo
+
+2. Restore backup repositories:
+
+     sudo cp /etc/yum.repos.d/backup/*.repo /etc/yum.repos.d/
+
+3. If you disabled upstream repos, re-enable them:
+
+     sudo sed -i 's/^enabled=0/enabled=1/g' /etc/yum.repos.d/rocky*.repo
+     sudo sed -i 's/^enabled=0/enabled=1/g' /etc/yum.repos.d/epel.repo
+
+4. Refresh repository cache:
+
+     sudo dnf clean all
+     sudo dnf makecache
+
+5. Verify:
+
+     dnf repolist
+
+   Should show upstream repositories (rocky-baseos, rocky-appstream, etc.)
+
+================================================================================
+ADDITIONAL NOTES
+================================================================================
+
+Repository Priority:
+  - DNF processes repositories in the order they appear in repolist
+  - To prioritize local mirror, you can set priority in repo file:
+      priority=1
+
+Proxy Configuration:
+  - If using a proxy, add to repo file:
+      proxy=http://proxy.example.com:8080
+      proxy_username=username
+      proxy_password=password
+
+Performance:
+  - Use fastest mirror plugin:
+      sudo dnf install dnf-plugin-fastestmirror
+
+Monitoring:
+  - Monitor mirror sync status on mirror server
+  - Check disk space on mirror server
+  - Monitor repository access logs
+
+Security:
+  - Always keep gpgcheck=1 enabled
+  - Verify GPG keys are correct
+  - Use HTTPS if available (https:// instead of http://)
+  - Implement network policies for air-gapped environments
+
+================================================================================
+REFERENCE INFORMATION
+================================================================================
+
+Repository Locations on Mirror:
+  - Rocky BaseOS:    /rpm/rocky/10/BaseOS/$basearch
+  - Rocky AppStream: /rpm/rocky/10/AppStream/$basearch
+  - Rocky Extras:    /rpm/rocky/10/extras/$basearch
+  - EPEL:            /rpm/epel/10/$basearch
+
+GPG Key Locations:
+  - Rocky Linux: /etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+  - EPEL:        /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-10
+
+Configuration Files:
+  - Repository configs: /etc/yum.repos.d/*.repo
+  - DNF config:         /etc/dnf/dnf.conf
+  - Backup location:    /etc/yum.repos.d/backup/
+
+Useful Commands:
+  - List repositories:       dnf repolist
+  - Repository details:      dnf repolist -v
+  - Search packages:         dnf search <package>
+  - Package information:     dnf info <package>
+  - Clean cache:             dnf clean all
+  - Rebuild cache:           dnf makecache
+  - Check updates:           dnf check-update
+  - Repository list (all):   dnf repolist --all
+
+================================================================================
+SUPPORT
+================================================================================
+
+For more information and automated configuration:
+  - Use the automated script: configure-rocky-client.sh
+  - See: CLIENT_SETUP.md for comprehensive documentation
+  - See: ansible/README.md for mirror server setup
+
+================================================================================
