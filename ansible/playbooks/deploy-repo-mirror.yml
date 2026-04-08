@@ -65,23 +65,36 @@
       when: monitoring_enabled | default(true)
 
   post_tasks:
-    - name: Validate services are running
-      systemd:
-        name: "{{ item }}"
-        state: started
-        enabled: yes
+    - name: Check which services exist
+      stat:
+        path: "/etc/systemd/system/{{ item }}.service"
       loop:
         - container-aptly
         - nginx
+        - rpm-sync
+        - aptly-sync
+      register: service_files
+      tags: [validate]
+
+    - name: Validate services are running
+      systemd:
+        name: "{{ item.item }}"
+        state: started
+        enabled: yes
+      loop: "{{ service_files.results }}"
+      when:
+        - item.stat.exists
+        - item.item in ['container-aptly', 'nginx']
       tags: [validate]
 
     - name: Validate timers are enabled
       systemd:
-        name: "{{ item }}"
+        name: "{{ item.item }}.timer"
         enabled: yes
-      loop:
-        - rpm-sync.timer
-        - aptly-sync.timer
+      loop: "{{ service_files.results }}"
+      when:
+        - item.stat.exists
+        - item.item in ['rpm-sync', 'aptly-sync']
       tags: [validate]
 
     - name: Display access information
