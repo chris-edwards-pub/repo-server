@@ -1,9 +1,16 @@
-FROM rockylinux:9
+FROM debian:bookworm-slim
 
-# Install EPEL and aptly
-RUN dnf install -y epel-release && \
-    dnf install -y aptly gnupg2 && \
-    dnf clean all
+# Install aptly and dependencies
+RUN apt-get update && \
+    apt-get install -y \
+        aptly \
+        gnupg2 \
+        gpgv \
+        ca-certificates \
+        xz-utils \
+        bzip2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create aptly user
 RUN useradd -r -s /bin/false -d /aptly aptly
