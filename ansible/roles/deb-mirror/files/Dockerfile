@@ -1,16 +1,19 @@
-FROM quay.io/debian/debian:bookworm-slim
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
-# Install aptly and dependencies
-RUN apt-get update && \
-    apt-get install -y \
-        aptly \
+# Install dependencies and download aptly binary
+RUN microdnf install -y \
+        tar \
+        xz \
+        gzip \
         gnupg2 \
-        gpgv \
-        ca-certificates \
-        xz-utils \
-        bzip2 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        ca-certificates && \
+    microdnf clean all
+
+# Download and install aptly binary (no external registry pull needed)
+RUN curl -L https://github.com/aptly-dev/aptly/releases/download/v1.5.0/aptly_1.5.0_linux_amd64.tar.gz -o /tmp/aptly.tar.gz && \
+    tar xzf /tmp/aptly.tar.gz -C /usr/local/bin --strip-components=1 && \
+    rm /tmp/aptly.tar.gz && \
+    chmod +x /usr/local/bin/aptly
 
 # Create aptly user
 RUN useradd -r -s /bin/false -d /aptly aptly
