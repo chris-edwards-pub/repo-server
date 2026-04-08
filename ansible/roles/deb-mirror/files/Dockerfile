@@ -1,19 +1,16 @@
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM docker-ng-trusted-group.northgrum.com/ironbank/opensource/debian/debian:13-slim
 
-# Install dependencies and download aptly binary
-RUN microdnf install -y \
-        tar \
-        xz \
-        gzip \
+# Install aptly and dependencies
+RUN apt-get update && \
+    apt-get install -y \
+        aptly \
         gnupg2 \
-        ca-certificates && \
-    microdnf clean all
-
-# Download and install aptly binary (no external registry pull needed)
-RUN curl -L https://github.com/aptly-dev/aptly/releases/download/v1.5.0/aptly_1.5.0_linux_amd64.tar.gz -o /tmp/aptly.tar.gz && \
-    tar xzf /tmp/aptly.tar.gz -C /usr/local/bin --strip-components=1 && \
-    rm /tmp/aptly.tar.gz && \
-    chmod +x /usr/local/bin/aptly
+        gpgv \
+        ca-certificates \
+        xz-utils \
+        bzip2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create aptly user
 RUN useradd -r -s /bin/false -d /aptly aptly
