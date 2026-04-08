@@ -37,7 +37,7 @@
 
 - name: Pull Aptly Docker image
   containers.podman.podman_image:
-    name: docker.io/aptly/aptly
+    name: ghcr.io/aptly-dev/aptly
     tag: latest
     state: present
 

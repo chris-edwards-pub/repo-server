@@ -40,7 +40,7 @@ TimeoutStopSec=70
 ExecStartPre=/usr/bin/podman rm -f aptly 2>/dev/null || true
 
 # Pull image if missing (handles edge case where image was deleted)
-ExecStartPre=/usr/bin/podman pull --quiet docker.io/aptly/aptly:latest
+ExecStartPre=/usr/bin/podman pull --quiet ghcr.io/aptly-dev/aptly:latest
 
 # Create and start the container
 ExecStart=/usr/bin/podman run \
@@ -54,7 +54,7 @@ ExecStart=/usr/bin/podman run \
     --security-opt no-new-privileges \
     --cap-drop ALL \
     --cap-add NET_BIND_SERVICE \
-    docker.io/aptly/aptly:latest \
+    ghcr.io/aptly-dev/aptly:latest \
     aptly serve -listen=:8080
 
 # Stop the container gracefully
