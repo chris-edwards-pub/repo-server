@@ -82,9 +82,10 @@
         name: "{{ item.item }}"
         state: started
         enabled: yes
-      loop: "{{ service_files.results }}"
+      loop: "{{ service_files.results | default([]) }}"
       when:
         - not ansible_check_mode
+        - service_files is defined
         - item.stat.exists
         - item.item in ['container-aptly', 'nginx']
       tags: [validate]
@@ -93,9 +94,10 @@
       systemd:
         name: "{{ item.item }}.timer"
         enabled: yes
-      loop: "{{ service_files.results }}"
+      loop: "{{ service_files.results | default([]) }}"
       when:
         - not ansible_check_mode
+        - service_files is defined
         - item.stat.exists
         - item.item in ['rpm-sync', 'aptly-sync']
       tags: [validate]
