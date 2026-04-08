@@ -58,6 +58,7 @@
     name: aptly-sync.timer
     enabled: yes
     state: started
+  when: not ansible_check_mode
 
 - name: Create DEB status file placeholder
   copy:

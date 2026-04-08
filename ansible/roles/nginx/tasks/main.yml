@@ -39,3 +39,4 @@
     name: nginx
     enabled: yes
     state: started
+  when: not ansible_check_mode

@@ -99,10 +99,13 @@
   loop:
     - rpm-metrics.timer
     - deb-metrics.timer
+  when: not ansible_check_mode
 
 - name: Enable and start node_exporter
   systemd:
     name: node_exporter
     enabled: yes
     state: started
-  when: monitoring_enabled | default(true)
+  when:
+    - monitoring_enabled | default(true)
+    - not ansible_check_mode

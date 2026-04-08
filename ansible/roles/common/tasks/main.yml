@@ -27,6 +27,7 @@
         name: firewalld
         state: started
         enabled: yes
+      when: not ansible_check_mode
   when: firewall_enabled | default(true)
   tags: firewall
 
