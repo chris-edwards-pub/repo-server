@@ -35,6 +35,34 @@
   failed_when: false
   changed_when: true
 
+- name: Create directory for base image
+  file:
+    path: /opt/container-images
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Copy Debian base image tar
+  copy:
+    src: debian_13_slim.tar
+    dest: /opt/container-images/debian_13_slim.tar
+    mode: '0644'
+    owner: root
+    group: root
+  register: debian_tar_copied
+
+- name: Load Debian base image into podman
+  command: podman load -i /opt/container-images/debian_13_slim.tar
+  when: debian_tar_copied.changed
+  register: image_loaded
+  changed_when: image_loaded.rc == 0
+
+- name: Tag loaded Debian image
+  command: podman tag $(podman images -q --filter "reference=*debian*13*" | head -1) localhost/debian:13-slim
+  when: debian_tar_copied.changed or image_loaded.changed
+  changed_when: true
+
 - name: Create directory for Dockerfile
   file:
     path: /opt/aptly-build

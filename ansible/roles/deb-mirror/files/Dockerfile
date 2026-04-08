@@ -1,4 +1,4 @@
-FROM docker-ng-trusted-group.northgrum.com/ironbank/opensource/debian/debian:13-slim
+FROM localhost/debian:13-slim
 
 # Install aptly and dependencies
 RUN apt-get update && \
