@@ -1,9 +1,31 @@
 ---
+- name: Check if node_exporter package is available
+  command: dnf list golang-github-prometheus-node-exporter
+  register: node_exporter_check
+  failed_when: false
+  changed_when: false
+  when:
+    - monitoring_enabled | default(true)
+    - not ansible_check_mode
+
+- name: Warning if node_exporter package not available
+  debug:
+    msg: "WARNING: golang-github-prometheus-node-exporter package not found. Monitoring will be limited. Package may not be available in Rocky Linux 10 EPEL yet."
+  when:
+    - monitoring_enabled | default(true)
+    - not ansible_check_mode
+    - node_exporter_check is defined
+    - node_exporter_check.rc != 0
+
 - name: Install Prometheus node exporter
   dnf:
     name: golang-github-prometheus-node-exporter
     state: present
-  when: monitoring_enabled | default(true)
+  when:
+    - monitoring_enabled | default(true)
+    - not ansible_check_mode
+    - node_exporter_check is defined
+    - node_exporter_check.rc == 0
 
 - name: Create textfile collector directory
   file:
@@ -90,6 +112,7 @@
 - name: Reload systemd daemon
   systemd:
     daemon_reload: yes
+  when: not ansible_check_mode
 
 - name: Enable and start metrics timers
   systemd:
@@ -109,3 +132,5 @@
   when:
     - monitoring_enabled | default(true)
     - not ansible_check_mode
+    - node_exporter_check is defined
+    - node_exporter_check.rc == 0
