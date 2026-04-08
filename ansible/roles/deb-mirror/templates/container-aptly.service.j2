@@ -10,6 +10,27 @@ RequiresMountsFor={{ repo_base_path }}/aptly
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
+{% if proxy_http is defined %}
+Environment=HTTP_PROXY={{ proxy_http }}
+Environment=http_proxy={{ proxy_http }}
+{% elif lookup('env', 'HTTP_PROXY') %}
+Environment=HTTP_PROXY={{ lookup('env', 'HTTP_PROXY') }}
+Environment=http_proxy={{ lookup('env', 'HTTP_PROXY') }}
+{% endif %}
+{% if proxy_https is defined %}
+Environment=HTTPS_PROXY={{ proxy_https }}
+Environment=https_proxy={{ proxy_https }}
+{% elif lookup('env', 'HTTPS_PROXY') %}
+Environment=HTTPS_PROXY={{ lookup('env', 'HTTPS_PROXY') }}
+Environment=https_proxy={{ lookup('env', 'HTTPS_PROXY') }}
+{% endif %}
+{% if proxy_no is defined %}
+Environment=NO_PROXY={{ proxy_no }}
+Environment=no_proxy={{ proxy_no }}
+{% elif lookup('env', 'NO_PROXY') %}
+Environment=NO_PROXY={{ lookup('env', 'NO_PROXY') }}
+Environment=no_proxy={{ lookup('env', 'NO_PROXY') }}
+{% endif %}
 Restart=on-failure
 RestartSec=30
 TimeoutStartSec=600

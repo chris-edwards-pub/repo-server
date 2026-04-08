@@ -111,3 +111,10 @@ firewall_allowed_ports:
 
 # SELinux configuration
 selinux_enabled: true
+
+# Proxy configuration (optional)
+# If set, these will be used for container image pulls
+# Otherwise, system environment variables will be used
+# proxy_http: "http://proxy.example.com:8080"
+# proxy_https: "http://proxy.example.com:8080"
+# proxy_no: "localhost,127.0.0.1,.local"
