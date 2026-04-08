@@ -23,7 +23,7 @@
               {% set _ = matching.append(mount.mount) %}
             {% endif %}
           {% endfor %}
-          {{ (matching | sort(reverse=true) | first) | default('/') }}
+          {{ ((matching | sort(reverse=true) | first) | default('/')) | trim }}
       tags: always
 
     - name: Get mount point details
