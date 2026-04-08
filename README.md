@@ -50,7 +50,7 @@ cd ansible
 vim inventory/production/hosts.yml
 
 # Configure variables
-vim inventory/group_vars/repo_servers.yml
+vim inventory/production/group_vars/repo_servers.yml
 
 # Deploy
 ansible-playbook playbooks/deploy-repo-mirror.yml
@@ -385,7 +385,7 @@ sudo systemctl status deb-sync.service
 
 ### Modifying Mirrored Architectures
 
-To add or remove architectures, edit `ansible/inventory/group_vars/repo_servers.yml`:
+To add or remove architectures, edit `ansible/inventory/production/group_vars/repo_servers.yml`:
 
 ```yaml
 # RPM architectures
@@ -403,7 +403,7 @@ Then re-run the Ansible playbook to apply changes.
 
 ### Modifying Sync Schedule
 
-Edit `ansible/inventory/group_vars/repo_servers.yml`:
+Edit `ansible/inventory/production/group_vars/repo_servers.yml`:
 
 ```yaml
 # Sync schedule (systemd timer format)

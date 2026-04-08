@@ -68,7 +68,7 @@ all:
 
 ### 2. Configure Variables
 
-Edit `inventory/group_vars/repo_servers.yml`:
+Edit `inventory/production/group_vars/repo_servers.yml`:
 ```yaml
 repo_server_hostname: repo-mirror.local  # CHANGE THIS
 ```
@@ -397,10 +397,10 @@ ansible/
 │   ├── nginx/              # Web server configuration
 │   └── monitoring/         # Prometheus metrics
 └── inventory/
-    ├── production/
-    │   └── hosts.yml       # Target servers
-    └── group_vars/
-        └── repo_servers.yml # Configuration variables
+    └── production/
+        ├── hosts.yml       # Target servers
+        └── group_vars/
+            └── repo_servers.yml # Configuration variables
 ```
 
 ## Security Considerations
