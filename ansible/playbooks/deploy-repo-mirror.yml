@@ -14,7 +14,8 @@
       tags: always
 
     - name: Check available disk space
-      shell: df -BG {{ repo_base_path | dirname }} 2>/dev/null | tail -1 | awk '{print $4}' | sed 's/G//' || echo "1000"
+      shell: |
+        df -B1G {{ repo_base_path | dirname }} 2>/dev/null | tail -1 | awk '{print $4}' | sed 's/G$//' || echo "1000"
       register: available_space
       changed_when: false
       tags: always
