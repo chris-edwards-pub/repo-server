@@ -35,11 +35,30 @@
   failed_when: false
   changed_when: true
 
-- name: Pull Aptly Docker image
+- name: Create directory for Dockerfile
+  file:
+    path: /opt/aptly-build
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Copy Aptly Dockerfile
+  copy:
+    src: Dockerfile
+    dest: /opt/aptly-build/Dockerfile
+    mode: '0644'
+    owner: root
+    group: root
+  register: dockerfile_copied
+
+- name: Build Aptly container image
   containers.podman.podman_image:
-    name: docker.io/smira/aptly
+    name: localhost/aptly
     tag: latest
-    state: present
+    path: /opt/aptly-build
+    force: "{{ dockerfile_copied.changed }}"
+    state: build
 
 - name: Deploy Aptly systemd service
   template:
