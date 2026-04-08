@@ -1,6 +1,6 @@
 ---
 - name: Check if node_exporter package is available
-  command: dnf list golang-github-prometheus-node-exporter
+  command: dnf list node-exporter
   register: node_exporter_check
   failed_when: false
   changed_when: false
@@ -10,7 +10,7 @@
 
 - name: Warning if node_exporter package not available
   debug:
-    msg: "WARNING: golang-github-prometheus-node-exporter package not found. Monitoring will be limited. Package may not be available in Rocky Linux 10 EPEL yet."
+    msg: "WARNING: node-exporter package not found. Monitoring will be limited. Package may not be available in Rocky Linux 10 EPEL yet."
   when:
     - monitoring_enabled | default(true)
     - not ansible_check_mode
@@ -19,7 +19,7 @@
 
 - name: Install Prometheus node exporter
   dnf:
-    name: golang-github-prometheus-node-exporter
+    name: node-exporter
     state: present
   when:
     - monitoring_enabled | default(true)
@@ -126,7 +126,7 @@
 
 - name: Enable and start node_exporter
   systemd:
-    name: node_exporter
+    name: node-exporter
     enabled: yes
     state: started
   when:
