@@ -137,6 +137,69 @@ Component-level tags (for fine-grained control):
 ansible-playbook playbooks/deploy-repo-mirror.yml --skip-tags monitoring
 ```
 
+### Tag Execution Order
+
+When running tags individually, follow this order to respect dependencies:
+
+**1. `common`** - Base system setup (MUST RUN FIRST)
+```bash
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags common
+```
+- Installs packages (createrepo_c, nginx, podman, etc.)
+- Configures firewall and SELinux
+
+**2. `storage`** - Create directory structure
+```bash
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags storage
+```
+- Creates `/repos` directory structure
+- Required before rpm or deb roles
+
+**3. `rpm` and/or `deb`** - Repository setup
+```bash
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags rpm
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags deb
+```
+- Can run independently after storage
+
+**4. `nginx`** - Web server
+```bash
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags nginx
+```
+- Should run after rpm/deb setup
+
+**5. `monitoring`** - Metrics (optional)
+```bash
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags monitoring
+```
+- Can run anytime after common
+
+**6. `validate`** - Check services (optional)
+```bash
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags validate
+```
+- Run at end to verify deployment
+
+**Common tag combinations:**
+```bash
+# Initial setup
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags common,storage
+
+# Just RPM infrastructure
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags storage,rpm,nginx
+
+# Just DEB infrastructure
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags storage,deb,nginx
+
+# Update configs only
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags rpm,deb,nginx
+```
+
+**Dependency chain:**
+```
+common → storage → rpm/deb → nginx → monitoring → validate
+```
+
 ## Post-Deployment
 
 ### Access Your Repository Mirror
