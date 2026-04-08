@@ -15,15 +15,20 @@
 
     - name: Find mount point for repository path
       set_fact:
-        repo_mount_info: >-
+        repo_mount_path: >-
           {% set target_path = repo_base_path | default('/repos') %}
-          {% set matching_mounts = [] %}
+          {% set matching = [] %}
           {% for mount in ansible_mounts %}
             {% if target_path.startswith(mount.mount) %}
-              {% set _ = matching_mounts.append(mount) %}
+              {% set _ = matching.append(mount.mount) %}
             {% endif %}
           {% endfor %}
-          {{ matching_mounts | sort(attribute='mount', reverse=true) | first }}
+          {{ (matching | sort(reverse=true) | first) | default('/') }}
+      tags: always
+
+    - name: Get mount point details
+      set_fact:
+        repo_mount_info: "{{ ansible_mounts | selectattr('mount', '==', repo_mount_path) | first }}"
       tags: always
 
     - name: Calculate available disk space in GB
