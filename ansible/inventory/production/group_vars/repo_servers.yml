@@ -3,7 +3,7 @@
 
 # Base paths
 repo_base_path: /repos
-repo_server_hostname: repo-mirror.local  # CHANGE THIS to your server hostname/IP
+repo_server_hostname: ip-10-145-54-112.us-gov-east-1.compute.internal
 
 # RPM repository configuration
 repo_rpm_architectures:
