@@ -61,9 +61,9 @@ all:
   children:
     repo_servers:
       hosts:
-        repo-mirror-01:
-          ansible_host: 192.168.1.100    # CHANGE THIS
-          ansible_user: ec2-user          # CHANGE THIS
+        repo-mirror-01:                    # CHANGE THIS to match your server hostname
+          ansible_host: 192.168.1.100      # CHANGE THIS to your server IP
+          ansible_user: ec2-user            # CHANGE THIS if using different user
 ```
 
 ### 2. Configure Variables
