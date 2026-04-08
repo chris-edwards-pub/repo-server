@@ -65,41 +65,37 @@
       when: monitoring_enabled | default(true)
 
   post_tasks:
-    - name: Check which services exist
-      stat:
-        path: "/etc/systemd/system/{{ item }}.service"
-      loop:
-        - container-aptly
-        - nginx
-        - rpm-sync
-        - aptly-sync
-      register: service_files
+    - name: Validation block
+      block:
+        - name: Check which services exist
+          stat:
+            path: "/etc/systemd/system/{{ item }}.service"
+          loop:
+            - container-aptly
+            - nginx
+            - rpm-sync
+            - aptly-sync
+          register: service_files
+
+        - name: Validate services are running
+          systemd:
+            name: "{{ item.item }}"
+            state: started
+            enabled: yes
+          loop: "{{ service_files.results }}"
+          when:
+            - item.stat.exists
+            - item.item in ['container-aptly', 'nginx']
+
+        - name: Validate timers are enabled
+          systemd:
+            name: "{{ item.item }}.timer"
+            enabled: yes
+          loop: "{{ service_files.results }}"
+          when:
+            - item.stat.exists
+            - item.item in ['rpm-sync', 'aptly-sync']
       when: not ansible_check_mode
-      tags: [validate]
-
-    - name: Validate services are running
-      systemd:
-        name: "{{ item.item }}"
-        state: started
-        enabled: yes
-      loop: "{{ service_files.results | default([]) }}"
-      when:
-        - not ansible_check_mode
-        - service_files is defined
-        - item.stat.exists
-        - item.item in ['container-aptly', 'nginx']
-      tags: [validate]
-
-    - name: Validate timers are enabled
-      systemd:
-        name: "{{ item.item }}.timer"
-        enabled: yes
-      loop: "{{ service_files.results | default([]) }}"
-      when:
-        - not ansible_check_mode
-        - service_files is defined
-        - item.stat.exists
-        - item.item in ['rpm-sync', 'aptly-sync']
       tags: [validate]
 
     - name: Display access information
