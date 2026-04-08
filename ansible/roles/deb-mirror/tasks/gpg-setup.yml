@@ -39,6 +39,7 @@
     mode: '0600'
     owner: root
     group: root
+  when: not ansible_check_mode
 
 - name: Copy public key to web-accessible location
   copy:
@@ -46,3 +47,4 @@
     dest: "{{ repo_base_path }}/aptly/public/public.key"
     mode: '0644'
     remote_src: yes
+  when: not ansible_check_mode
