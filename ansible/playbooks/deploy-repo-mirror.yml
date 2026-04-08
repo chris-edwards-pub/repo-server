@@ -13,18 +13,29 @@
         success_msg: "OS validation passed: {{ ansible_distribution }} {{ ansible_distribution_version }}"
       tags: always
 
-    - name: Check available disk space
-      shell: |
-        df -B1G {{ repo_base_path | dirname }} 2>/dev/null | tail -1 | awk '{print $4}' | sed 's/G$//' || echo "1000"
-      register: available_space
-      changed_when: false
+    - name: Find mount point for repository path
+      set_fact:
+        repo_mount_info: >-
+          {% set target_path = repo_base_path | default('/repos') %}
+          {% set matching_mounts = [] %}
+          {% for mount in ansible_mounts %}
+            {% if target_path.startswith(mount.mount) %}
+              {% set _ = matching_mounts.append(mount) %}
+            {% endif %}
+          {% endfor %}
+          {{ matching_mounts | sort(attribute='mount', reverse=true) | first }}
+      tags: always
+
+    - name: Calculate available disk space in GB
+      set_fact:
+        available_space_gb: "{{ (repo_mount_info.size_available / 1024 / 1024 / 1024) | int }}"
       tags: always
 
     - name: Ensure sufficient disk space
       assert:
-        that: available_space.stdout|int > 500
-        fail_msg: "Insufficient disk space. Need at least 500GB, found {{ available_space.stdout }}GB"
-        success_msg: "Disk space check passed: {{ available_space.stdout }}GB available"
+        that: available_space_gb | int > 500
+        fail_msg: "Insufficient disk space on {{ repo_mount_info.mount }}. Need at least 500GB, found {{ available_space_gb }}GB available"
+        success_msg: "Disk space check passed: {{ available_space_gb }}GB available on {{ repo_mount_info.mount }}"
       tags: always
 
     - name: Display deployment info
