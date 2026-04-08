@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM quay.io/debian/debian:bookworm-slim
 
 # Install aptly and dependencies
 RUN apt-get update && \
