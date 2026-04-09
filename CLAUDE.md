@@ -68,7 +68,9 @@ When making changes to the project:
 ```
 repo-server/
 ├── ansible/                    # Deployment automation
-│   ├── inventory/             # Target servers and variables
+│   ├── inventory/             # Inventory configurations
+│   │   ├── localhost/         # Local deployment (default)
+│   │   └── production/        # Remote deployment
 │   ├── playbooks/             # Ansible playbooks
 │   └── roles/                 # Ansible roles
 ├── client-scripts/            # Client configuration scripts
@@ -76,6 +78,48 @@ repo-server/
 ├── CLIENT_SETUP.md            # User-facing client guide
 └── README.md                  # Main project documentation
 ```
+
+## Working with Inventories
+
+This project supports two deployment modes:
+
+### Localhost Inventory (Default)
+
+Located in `ansible/inventory/localhost/`:
+- Uses `ansible_connection: local` for direct execution
+- No SSH required
+- Fastest deployment option
+- Ideal for same-server deployment
+
+### Production Inventory (Remote)
+
+Located in `ansible/inventory/production/`:
+- Uses SSH connection to remote servers
+- Requires SSH key authentication
+- For deploying from control node to remote servers
+- Accessible via `-i inventory/production/hosts.yml` flag
+
+### Shared Configuration
+
+Both inventories share `group_vars/repo_servers.yml` via symlink. Changes to repository configuration, sync schedules, architectures, etc., apply to both deployment modes.
+
+### When to Edit Each File
+
+**Edit `inventory/localhost/hosts.yml` to:**
+- Adjust Python interpreter path
+- Modify localhost connection settings
+
+**Edit `inventory/production/hosts.yml` to:**
+- Add/remove remote servers
+- Update SSH connection details
+- Change remote hostnames/IPs
+
+**Edit `inventory/production/group_vars/repo_servers.yml` to:**
+- Configure repository lists
+- Adjust sync schedules
+- Modify architectures
+- Change monitoring settings
+- Update any repository-specific variables
 
 ## Code Standards
 
@@ -194,7 +238,7 @@ See `.gitignore` for complete list.
 
 ### Adding a New Repository
 
-1. Update `ansible/inventory/group_vars/repo_servers.yml`
+1. Update `ansible/inventory/production/group_vars/repo_servers.yml` (shared by both localhost and remote inventories)
 2. Update sync script templates (rpm-sync.sh.j2 or aptly-sync.sh.j2)
 3. Test sync manually
 4. Update README.md architecture matrix
@@ -271,6 +315,6 @@ When working with this project:
 
 ---
 
-**Last Updated**: 2026-04-07
+**Last Updated**: 2026-04-09
 
 **Note**: This file provides guidance to Claude Code. Human contributors should also follow these guidelines for consistency.

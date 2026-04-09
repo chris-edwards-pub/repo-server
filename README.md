@@ -42,18 +42,30 @@ This project deploys and manages a centralized repository mirror server that hos
 
 ### Deploy the Mirror Server
 
+**Local Deployment (Same Server):**
 ```bash
-# On your control node/workstation
 cd ansible
 
-# Configure inventory
-vim inventory/production/hosts.yml
+# Deploy to localhost (default)
+ansible-playbook playbooks/deploy-repo-mirror.yml
 
-# Configure variables
+# Check mode (dry-run)
+ansible-playbook playbooks/deploy-repo-mirror.yml --check
+```
+
+**Remote Deployment:**
+```bash
+cd ansible
+
+# Configure remote inventory
+vim inventory/production/hosts.yml
 vim inventory/production/group_vars/repo_servers.yml
 
-# Deploy
-ansible-playbook playbooks/deploy-repo-mirror.yml
+# Deploy to remote server
+ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml
+
+# Test connectivity first
+ansible repo_servers -m ping -i inventory/production/hosts.yml
 ```
 
 See [ansible/README.md](ansible/README.md) for detailed deployment instructions.
@@ -427,8 +439,10 @@ Then re-run the Ansible playbook to update timers.
 ### For Control Node (Deployment)
 
 - **Ansible**: 2.9+ (ansible-core)
-- **SSH**: Key-based authentication to target server
+- **SSH**: Key-based authentication to target server (remote deployment only)
 - **Python**: 3.6+ with required modules
+
+**Note:** For localhost deployment (running on the same server), you only need Ansible installed locally. SSH and remote access are only required for remote deployment.
 
 ### For Client Systems
 
@@ -465,4 +479,4 @@ This project is provided as-is for internal use. Adjust licensing as appropriate
 
 ---
 
-**Last Updated**: 2026-04-07
+**Last Updated**: 2026-04-09

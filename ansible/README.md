@@ -53,7 +53,37 @@ ansible-galaxy collection install -r requirements.yml
 
 ## Quick Start
 
-### 1. Configure Inventory
+### Option 1: Local Deployment (Same Server)
+
+Deploy on the same server where Ansible is running:
+
+```bash
+# Navigate to ansible directory
+cd ansible
+
+# Review configuration (optional)
+vim inventory/localhost/hosts.yml
+
+# Adjust variables (optional)
+vim inventory/production/group_vars/repo_servers.yml
+
+# Deploy
+ansible-playbook playbooks/deploy-repo-mirror.yml
+
+# Dry-run first (check mode)
+ansible-playbook playbooks/deploy-repo-mirror.yml --check
+
+# With verbose output
+ansible-playbook playbooks/deploy-repo-mirror.yml -vvv
+```
+
+**No SSH or network configuration required** - Ansible runs commands directly on localhost.
+
+### Option 2: Remote Deployment
+
+Deploy to a remote server:
+
+#### 1. Configure Inventory
 
 Edit `inventory/production/hosts.yml`:
 ```yaml
@@ -66,7 +96,7 @@ all:
           ansible_user: ec2-user            # CHANGE THIS if using different user
 ```
 
-### 2. Configure Variables
+#### 2. Configure Variables
 
 Edit `inventory/production/group_vars/repo_servers.yml`:
 ```yaml
@@ -75,24 +105,38 @@ repo_server_hostname: repo-mirror.local  # CHANGE THIS
 
 Review and adjust other settings as needed (architectures, schedules, etc.)
 
-### 3. Test Connectivity
+#### 3. Test Connectivity
 
 ```bash
-ansible repo_servers -m ping
+ansible repo_servers -m ping -i inventory/production/hosts.yml
 ```
 
-### 4. Deploy
+#### 4. Deploy
 
 ```bash
 # Full deployment
-ansible-playbook playbooks/deploy-repo-mirror.yml
+ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml
 
-# Dry-run first (check mode)
-ansible-playbook playbooks/deploy-repo-mirror.yml --check
+# Dry-run first
+ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml --check
 
 # With verbose output
-ansible-playbook playbooks/deploy-repo-mirror.yml -vvv
+ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml -vvv
 ```
+
+### Choosing Between Local and Remote
+
+**Use Local Deployment when:**
+- Setting up on the same server you're working on
+- Quick testing and development
+- Single-server deployment
+- No SSH complexity needed
+
+**Use Remote Deployment when:**
+- Deploying from a control node/workstation
+- Managing multiple mirror servers
+- Production deployments from central location
+- Existing Ansible infrastructure
 
 ## Deployment Options
 
@@ -101,17 +145,17 @@ ansible-playbook playbooks/deploy-repo-mirror.yml -vvv
 Deploy only specific components:
 
 ```bash
-# Only RPM mirror setup
+# Only RPM mirror setup (localhost)
 ansible-playbook playbooks/deploy-repo-mirror.yml --tags rpm
 
-# Only DEB mirror setup
+# Only DEB mirror setup (localhost)
 ansible-playbook playbooks/deploy-repo-mirror.yml --tags deb
 
-# Only NGINX configuration
-ansible-playbook playbooks/deploy-repo-mirror.yml --tags nginx
+# Only NGINX configuration (remote server)
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags nginx -i inventory/production/hosts.yml
 
-# Only monitoring
-ansible-playbook playbooks/deploy-repo-mirror.yml --tags monitoring
+# Only monitoring (remote server)
+ansible-playbook playbooks/deploy-repo-mirror.yml --tags monitoring -i inventory/production/hosts.yml
 ```
 
 Available tags:
@@ -403,6 +447,10 @@ cat /etc/os-release
 
 # SELinux status
 getenforce
+
+# Verify deployment mode
+ansible-inventory --list  # Shows localhost inventory (default)
+ansible-inventory --list -i inventory/production/hosts.yml  # Shows remote inventory
 ```
 
 ### Common Issues
@@ -460,10 +508,13 @@ ansible/
 │   ├── nginx/              # Web server configuration
 │   └── monitoring/         # Prometheus metrics
 └── inventory/
+    ├── localhost/
+    │   ├── hosts.yml       # Localhost deployment
+    │   └── group_vars/     # Symlink to ../production/group_vars/
     └── production/
-        ├── hosts.yml       # Target servers
+        ├── hosts.yml       # Remote deployment
         └── group_vars/
-            └── repo_servers.yml # Configuration variables
+            └── repo_servers.yml # Shared configuration variables
 ```
 
 ## Security Considerations
@@ -485,6 +536,42 @@ ansible/
 **Optional**:
 - Repository data can be re-synced from upstream
 - Consider backing up `/repos` if bandwidth is limited
+
+## Migrating from Localhost to Remote Deployment
+
+If you start with localhost deployment and later want to move to a dedicated server:
+
+1. **On the new remote server:**
+   - Ensure OS requirements are met (Rocky Linux 10, disk space, etc.)
+   - Configure SSH key authentication
+   - Verify sudo access for deployment user
+
+2. **On your control node (original server):**
+   ```bash
+   # Configure remote inventory
+   vim ansible/inventory/production/hosts.yml
+   # Set ansible_host, ansible_user, etc.
+
+   # Test connectivity
+   ansible repo_servers -m ping -i inventory/production/hosts.yml
+
+   # Deploy to remote server
+   ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml
+   ```
+
+3. **Migrate data (optional):**
+   ```bash
+   # If you want to copy existing repository data:
+   rsync -avz --progress /repos/ user@remote-server:/repos/
+   ```
+
+4. **Update clients:**
+   - Reconfigure client systems to point to new server hostname/IP
+   - Use client configuration scripts with new mirror address
+
+5. **Decommission old server (optional):**
+   - Stop services on old server
+   - Archive or remove repository data
 
 ## Support
 

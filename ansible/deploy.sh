@@ -38,6 +38,12 @@ Repository Mirror Deployment Script
 
 Usage: $0 [options]
 
+Deployment Modes:
+    Local (default)         Deploy to localhost (no SSH required)
+    Remote                  Deploy to remote server (requires -i flag)
+
+    Note: For remote deployment, pass inventory with ansible-playbook -i flag
+
 Options:
     -h, --help              Show this help message
     -c, --check             Run in check mode (dry-run)
@@ -66,15 +72,21 @@ Available Tags:
       container             Podman container setup only
 
 Examples:
-    $0                              # Full deployment
-    $0 --check                      # Dry-run (no changes)
-    $0 --tags rpm,nginx             # Deploy only RPM and NGINX
+    # Localhost deployment (default)
+    $0                              # Full deployment to localhost
+    $0 --check                      # Localhost dry-run (no changes)
+    $0 --tags rpm,nginx             # Deploy only RPM and NGINX to localhost
+    $0 --verbose                    # Verbose output (-vvv)
+
+    # Remote deployment (use ansible-playbook directly with -i flag)
+    # ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml
+    # ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml --check
+
+    # Common usage
     $0 --tags deb                   # Deploy only DEB/Aptly
     $0 --tags common,storage,rpm    # Deploy base + RPM only
     $0 --skip-tags monitoring       # Skip monitoring setup
     $0 --skip-tags validate         # Skip validation checks
-    $0 --verbose                    # Verbose output (-vvv)
-    $0 --verbose --check            # Verbose dry-run
 
 Common Tag Combinations:
     --tags common,storage           # Prepare system only
@@ -101,9 +113,9 @@ check_requirements() {
     fi
 
     # Check if inventory exists
-    if [ ! -f "$SCRIPT_DIR/inventory/production/hosts.yml" ]; then
-        print_error "Inventory file not found!"
-        echo "Create inventory/production/hosts.yml first"
+    if [ ! -f "$SCRIPT_DIR/inventory/localhost/hosts.yml" ]; then
+        print_error "Localhost inventory file not found!"
+        echo "Create inventory/localhost/hosts.yml first"
         exit 1
     fi
 
