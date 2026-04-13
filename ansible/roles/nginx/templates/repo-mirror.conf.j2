@@ -3,7 +3,7 @@
 
 # Upstream for Aptly container
 upstream aptly_backend {
-    server 127.0.0.1:8080;
+    server 127.0.0.1:{{ aptly_port | default(8080) }};
     keepalive 32;
 }
 

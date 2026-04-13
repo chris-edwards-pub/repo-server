@@ -38,6 +38,9 @@ repo_ubuntu_version: "24.04"
 aptly_gpg_key_name: "Offline Mirror"
 aptly_gpg_key_email: "admin@{{ repo_server_hostname }}"
 
+# Aptly container port (external)
+aptly_port: 8081
+
 # DEB mirrors to create
 deb_mirrors:
   - name: ubuntu-noble
