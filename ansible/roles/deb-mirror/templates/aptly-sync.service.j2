@@ -20,6 +20,8 @@ PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
 NoNewPrivileges=true
+ReadOnlyPaths=/etc
+ReadWritePaths={{ repo_base_path }}
 
 # Logging
 StandardOutput=append:{{ repo_base_path }}/logs/aptly-sync.log
