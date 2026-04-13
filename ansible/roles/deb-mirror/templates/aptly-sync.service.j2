@@ -19,7 +19,7 @@ CPUQuota=75%
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
-NoNewPrivileges=true
+# NoNewPrivileges disabled - conflicts with podman exec SELinux transitions
 ReadOnlyPaths=/etc
 ReadWritePaths={{ repo_base_path }}
 
