@@ -28,12 +28,22 @@ WORKDIR /aptly
 # Create entrypoint script to handle missing repositories
 RUN echo '#!/bin/bash\n\
 set -e\n\
+# Function to check for published repositories\n\
+has_published_repos() {\n\
+    local output=$(aptly publish list -config=/root/.aptly/aptly.conf 2>/dev/null || echo "")\n\
+    # Check if output contains actual repo entries (lines starting with filesystem: or s3:)\n\
+    echo "$output" | grep -qE "^(filesystem|s3):" && return 0\n\
+    # Also check for snapshot references\n\
+    echo "$output" | grep -qE "\\[.*\\]" && return 0\n\
+    return 1\n\
+}\n\
+\n\
 # Check if any published repositories exist\n\
-if ! aptly publish list -config=/root/.aptly/aptly.conf 2>/dev/null | grep -q "."; then\n\
+if ! has_published_repos; then\n\
     echo "No published repositories yet. Waiting for initial sync..."\n\
-    # Keep container running but don'\''t serve\n\
+    # Keep container running and wait for repos\n\
     while true; do\n\
-        if aptly publish list -config=/root/.aptly/aptly.conf 2>/dev/null | grep -q "."; then\n\
+        if has_published_repos; then\n\
             echo "Published repositories detected, starting serve..."\n\
             break\n\
         fi\n\
