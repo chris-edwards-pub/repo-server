@@ -99,6 +99,10 @@
     path: /opt/aptly-build
     force: "{{ dockerfile_copied.changed }}"
     state: build
+    build:
+      extra_args: >-
+        {% if proxy_http is defined %}--build-arg http_proxy={{ proxy_http }} --build-arg https_proxy={{ proxy_https | default(proxy_http) }}{% endif %}
+        {% if proxy_no is defined %}--build-arg no_proxy={{ proxy_no }}{% endif %}
 
 - name: Deploy Aptly systemd service
   template:
