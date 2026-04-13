@@ -1,4 +1,10 @@
 ---
+- name: Install EPEL repository
+  dnf:
+    name: epel-release
+    state: present
+  when: "'epel' in rpm_repos | map(attribute='repoid') | list"
+
 - name: Deploy RPM sync script
   template:
     src: rpm-sync.sh.j2
