@@ -6,6 +6,18 @@ Documentation=https://github.com/your-org/repo-server
 
 [Service]
 Type=oneshot
+{% if proxy_http is defined %}
+Environment=HTTP_PROXY={{ proxy_http }}
+Environment=http_proxy={{ proxy_http }}
+{% endif %}
+{% if proxy_https is defined %}
+Environment=HTTPS_PROXY={{ proxy_https }}
+Environment=https_proxy={{ proxy_https }}
+{% endif %}
+{% if proxy_no is defined %}
+Environment=NO_PROXY={{ proxy_no }}
+Environment=no_proxy={{ proxy_no }}
+{% endif %}
 ExecStart=/usr/local/bin/rpm-sync.sh
 Nice=10
 IOSchedulingClass=best-effort
