@@ -42,52 +42,74 @@ aptly_gpg_key_email: "admin@{{ repo_server_hostname }}"
 aptly_port: 8081
 
 # DEB mirrors to create
+# Note: Ubuntu uses different mirror URLs for different architectures
+# - amd64: archive.ubuntu.com / security.ubuntu.com
+# - arm64: ports.ubuntu.com
 deb_mirrors:
-  - name: ubuntu-noble
+  - name: ubuntu-noble-amd64
     url: "http://archive.ubuntu.com/ubuntu"
     distribution: noble
     components: "main restricted universe multiverse"
-    architectures: "{{ repo_deb_architectures }}"
-
-  - name: ubuntu-noble-updates
-    url: "http://archive.ubuntu.com/ubuntu"
-    distribution: noble-updates
-    components: "main restricted universe multiverse"
-    architectures: "{{ repo_deb_architectures }}"
-
-  - name: ubuntu-noble-security
-    url: "http://security.ubuntu.com/ubuntu"
-    distribution: noble-security
-    components: "main restricted universe multiverse"
-    architectures: "{{ repo_deb_architectures }}"
-
-  - name: docker-noble
-    url: "https://download.docker.com/linux/ubuntu"
-    distribution: noble
-    components: "stable"
-    architectures: "{{ repo_deb_architectures }}"
-    gpg_url: "https://download.docker.com/linux/ubuntu/gpg"
-
-  - name: nvidia-amd64
-    url: "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64"
-    distribution: "/"
-    components: ""
     architectures:
       - amd64
 
-  - name: nvidia-arm64
-    url: "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa"
-    distribution: "/"
-    components: ""
+  - name: ubuntu-noble-arm64
+    url: "http://ports.ubuntu.com/ubuntu-ports"
+    distribution: noble
+    components: "main restricted universe multiverse"
     architectures:
       - arm64
 
-  - name: xtradeb
-    url: "http://ppa.launchpad.net/xtradeb/apps/ubuntu"
-    distribution: noble
-    components: "main"
+  - name: ubuntu-noble-updates-amd64
+    url: "http://archive.ubuntu.com/ubuntu"
+    distribution: noble-updates
+    components: "main restricted universe multiverse"
     architectures:
       - amd64
+
+  - name: ubuntu-noble-updates-arm64
+    url: "http://ports.ubuntu.com/ubuntu-ports"
+    distribution: noble-updates
+    components: "main restricted universe multiverse"
+    architectures:
+      - arm64
+
+  - name: ubuntu-noble-security-amd64
+    url: "http://security.ubuntu.com/ubuntu"
+    distribution: noble-security
+    components: "main restricted universe multiverse"
+    architectures:
+      - amd64
+
+  - name: ubuntu-noble-security-arm64
+    url: "http://ports.ubuntu.com/ubuntu-ports"
+    distribution: noble-security
+    components: "main restricted universe multiverse"
+    architectures:
+      - arm64
+
+  # Optional: Add Docker CE, NVIDIA CUDA, and other third-party repos here
+  # Uncomment and add GPG keys as needed
+  # - name: docker-noble
+  #   url: "https://download.docker.com/linux/ubuntu"
+  #   distribution: noble
+  #   components: "stable"
+  #   architectures: "{{ repo_deb_architectures }}"
+  #   gpg_url: "https://download.docker.com/linux/ubuntu/gpg"
+  #
+  # - name: nvidia-amd64
+  #   url: "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64"
+  #   distribution: "/"
+  #   components: ""
+  #   architectures:
+  #     - amd64
+  #
+  # - name: nvidia-arm64
+  #   url: "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa"
+  #   distribution: "/"
+  #   components: ""
+  #   architectures:
+  #     - arm64
 
 # Sync schedules (systemd OnCalendar format)
 rpm_sync_schedule: "*-*-* 02:00:00"

@@ -76,13 +76,16 @@ create_snapshots() {
 {% endfor %}
 }
 
-# Merge Ubuntu base snapshots
+# Merge Ubuntu base snapshots (amd64 + arm64)
 merge_ubuntu_snapshots() {
-    log "Merging Ubuntu base snapshots"
+    log "Merging Ubuntu base snapshots (amd64 + arm64)"
     podman exec aptly aptly snapshot merge ubuntu-full-$DATE \
-        ubuntu-noble-$DATE \
-        ubuntu-noble-updates-$DATE \
-        ubuntu-noble-security-$DATE \
+        ubuntu-noble-amd64-$DATE \
+        ubuntu-noble-arm64-$DATE \
+        ubuntu-noble-updates-amd64-$DATE \
+        ubuntu-noble-updates-arm64-$DATE \
+        ubuntu-noble-security-amd64-$DATE \
+        ubuntu-noble-security-arm64-$DATE \
         >> "$LOG" 2>&1 || warn "Failed to merge Ubuntu snapshots"
 }
 
