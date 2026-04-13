@@ -8,7 +8,11 @@ RUN apt-get update && \
         gpgv \
         ca-certificates \
         xz-utils \
-        bzip2 && \
+        bzip2 \
+        curl \
+        wget \
+        ubuntu-keyring \
+        debian-keyring && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -18,6 +22,12 @@ RUN useradd -r -s /bin/false -d /aptly aptly
 # Create directories
 RUN mkdir -p /aptly /root/.aptly && \
     chown -R aptly:aptly /aptly
+
+# Import Ubuntu and Debian archive keys into aptly's trusted keyring
+RUN gpg --no-default-keyring --keyring /usr/share/keyrings/ubuntu-archive-keyring.gpg --export | \
+    gpg --no-default-keyring --keyring trustedkeys.gpg --import && \
+    gpg --no-default-keyring --keyring /usr/share/keyrings/debian-archive-keyring.gpg --export | \
+    gpg --no-default-keyring --keyring trustedkeys.gpg --import
 
 # Expose aptly API port
 EXPOSE 8080
