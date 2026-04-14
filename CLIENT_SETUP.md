@@ -18,19 +18,14 @@ Complete guide for configuring client systems to use the local repository mirror
 
 ## Download Methods
 
-Client configuration scripts can be downloaded in two ways:
+Client configuration scripts are available from the Git repository:
 
-**Method 1: Direct Download (Recommended)**
-```bash
-curl -O http://repo-mirror.local/configure-rocky-client.sh
-curl -O http://repo-mirror.local/configure-ubuntu-client.sh
-```
-
-**Method 2: From Git Repository**
 ```bash
 git clone https://github.com/chris-edwards-pub/repo-server.git
 cd repo-server/client-scripts
-# Scripts are in this directory
+# Scripts are located in this directory:
+# - configure-rocky-client.sh
+# - configure-ubuntu-client.sh
 ```
 
 ---
@@ -40,9 +35,9 @@ cd repo-server/client-scripts
 ### Rocky Linux / RHEL
 
 ```bash
-# Download the script
-curl -O http://repo-mirror.local/configure-rocky-client.sh
-chmod +x configure-rocky-client.sh
+# Clone the repository
+git clone https://github.com/chris-edwards-pub/repo-server.git
+cd repo-server/client-scripts
 
 # Run the configuration (replace repo-mirror.local with your mirror server)
 sudo ./configure-rocky-client.sh repo-mirror.local
@@ -54,9 +49,9 @@ sudo dnf install -y vim
 ### Ubuntu / Debian
 
 ```bash
-# Download the script
-curl -O http://repo-mirror.local/configure-ubuntu-client.sh
-chmod +x configure-ubuntu-client.sh
+# Clone the repository
+git clone https://github.com/chris-edwards-pub/repo-server.git
+cd repo-server/client-scripts
 
 # Run the configuration (replace repo-mirror.local with your mirror server)
 sudo ./configure-ubuntu-client.sh repo-mirror.local

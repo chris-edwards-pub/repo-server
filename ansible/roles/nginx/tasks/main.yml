@@ -40,17 +40,3 @@
     enabled: yes
     state: started
   when: not ansible_check_mode
-
-- name: Deploy client configuration scripts to web root
-  copy:
-    src: "{{ playbook_dir }}/../client-scripts/{{ item }}"
-    dest: "{{ repo_base_path }}/{{ item }}"
-    mode: '0755'
-    owner: root
-    group: root
-  loop:
-    - configure-rocky-client.sh
-    - configure-ubuntu-client.sh
-  tags:
-    - nginx
-    - client-scripts
