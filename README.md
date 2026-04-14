@@ -18,6 +18,7 @@ This project deploys and manages a centralized repository mirror server that hos
 - **RPM Repositories** (Native on Rocky Linux)
   - Rocky Linux 10: BaseOS, AppStream, Extras
   - EPEL 10
+  - Full mirror with all package versions (enables downgrades/rollbacks)
   - Managed with `dnf reposync` and `createrepo_c`
 
 - **DEB Repositories** (Containerized Aptly)
@@ -99,10 +100,10 @@ This repository mirror server provides **full multi-architecture support** for b
 | Repository | x86_64/amd64 | aarch64/arm64 | Notes |
 |------------|:------------:|:-------------:|-------|
 | **RPM Repositories** ||||
-| Rocky Linux 10 BaseOS | ✅ | ✅ | Full mirror |
-| Rocky Linux 10 AppStream | ✅ | ✅ | Full mirror |
-| Rocky Linux 10 Extras | ✅ | ✅ | Full mirror |
-| EPEL 10 | ✅ | ✅ | Full mirror |
+| Rocky Linux 10 BaseOS | ✅ | ✅ | All package versions |
+| Rocky Linux 10 AppStream | ✅ | ✅ | All package versions |
+| Rocky Linux 10 Extras | ✅ | ✅ | All package versions |
+| EPEL 10 | ✅ | ✅ | All package versions |
 | **DEB Repositories** ||||
 | Ubuntu 24.04 (noble) | ✅ | ✅ | All components |
 | Ubuntu Updates | ✅ | ✅ | All components |
