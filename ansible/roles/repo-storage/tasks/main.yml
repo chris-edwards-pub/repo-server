@@ -56,6 +56,14 @@
     - "{{ repo_base_path }}/aptly/data"
     - "{{ repo_base_path }}/aptly/public"
 
+- name: Create logs directory
+  file:
+    path: "{{ repo_base_path }}/logs"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
 - name: Set SELinux contexts for RPM repos
   sefcontext:
     target: "{{ repo_base_path }}/rpm(/.*)?"
@@ -67,6 +75,13 @@
   sefcontext:
     target: "{{ repo_base_path }}/aptly(/.*)?"
     setype: container_file_t
+    state: present
+  when: selinux_enabled | default(true)
+
+- name: Set SELinux contexts for logs directory
+  sefcontext:
+    target: "{{ repo_base_path }}/logs(/.*)?"
+    setype: var_log_t
     state: present
   when: selinux_enabled | default(true)
 
