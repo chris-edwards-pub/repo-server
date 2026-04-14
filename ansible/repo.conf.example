@@ -16,7 +16,7 @@ repo_server_hostname: repo-mirror.local
 # Only needed if deploying to a remote server
 # Leave commented for localhost deployment
 
-# ansible_host: 192.168.1.100  # IP address of remote server
+# ansible_host: 192.168.1.100  # IP address or hostname of remote server
 # ansible_user: ec2-user        # SSH user for deployment
 
 # ============================================
@@ -37,7 +37,7 @@ repo_server_hostname: repo-mirror.local
 
 # use_nfs_storage: true
 # nfs_server: repo-mirror-storage.local
-# nfs_server_ip: 192.168.1.200        # Storage server IP
-# nfs_client_ip: 192.168.1.100        # Repo server IP (for NFS exports)
+# nfs_server_ip: 192.168.1.200        # Storage server IP or hostname
+# nfs_client_ip: 192.168.1.100        # Repo server IP or hostname (for NFS exports)
 # nfs_mount_path: /repos
 # nfs_export_path: /repos
