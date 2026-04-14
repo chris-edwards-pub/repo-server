@@ -16,6 +16,25 @@ Complete guide for configuring client systems to use the local repository mirror
 
 ---
 
+## Download Methods
+
+Client configuration scripts can be downloaded in two ways:
+
+**Method 1: Direct Download (Recommended)**
+```bash
+curl -O http://repo-mirror.local/configure-rocky-client.sh
+curl -O http://repo-mirror.local/configure-ubuntu-client.sh
+```
+
+**Method 2: From Git Repository**
+```bash
+git clone https://github.com/chris-edwards-pub/repo-server.git
+cd repo-server/client-scripts
+# Scripts are in this directory
+```
+
+---
+
 ## Quick Start
 
 ### Rocky Linux / RHEL
@@ -209,8 +228,8 @@ sudo ./configure-ubuntu-client.sh repo-mirror.local
 | `--dry-run` | Preview changes without applying them |
 | `--disable-upstream` | Disable upstream repositories (air-gapped mode) |
 | `--keep-upstream` | Keep upstream repositories enabled (default) |
-| `--enable-nvidia` | Enable NVIDIA CUDA repository configuration |
-| `--enable-docker` | Enable Docker CE repository configuration |
+| `--enable-nvidia` | Enable NVIDIA CUDA repository (requires server-side setup) |
+| `--enable-docker` | Enable Docker CE repository (requires server-side setup) |
 | `--verbose` | Show detailed debug output |
 | `--help` | Display help message |
 
@@ -291,6 +310,28 @@ deb [signed-by=/usr/share/keyrings/local-mirror.gpg] http://repo-mirror.local/de
 ```
 
 And downloads the GPG key to `/usr/share/keyrings/local-mirror.gpg`.
+
+> **⚠️ Server Prerequisites for Optional Repositories**
+>
+> The NVIDIA and Docker repositories must be enabled and synchronized on the mirror server before configuring clients to use them.
+>
+> **These repositories are disabled by default.** To enable:
+>
+> 1. On the mirror server, edit `ansible/inventory/production/group_vars/repo_servers.yml`
+> 2. Uncomment the desired repository entries under `deb_mirrors:` section
+> 3. Re-run the Ansible deployment:
+>    ```bash
+>    ansible-playbook -i inventory/production/hosts.yml playbooks/deploy-repo-mirror.yml
+>    ```
+> 4. Manually trigger the first DEB sync or wait for the scheduled sync:
+>    ```bash
+>    sudo systemctl start aptly-sync.service
+>    ```
+> 5. Verify repositories are available at:
+>    - `http://repo-mirror.local/deb/docker-noble/`
+>    - `http://repo-mirror.local/deb/nvidia-amd64/`
+>    - `http://repo-mirror.local/deb/nvidia-arm64/`
+> 6. Only after verification, configure clients with `--enable-nvidia` or `--enable-docker`
 
 ### Optional Repositories
 
@@ -965,4 +1006,4 @@ The scripts currently use HTTP. To enable HTTPS:
 
 ---
 
-**Last Updated**: 2026-04-07
+**Last Updated**: 2026-04-14
