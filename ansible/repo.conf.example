@@ -36,8 +36,7 @@ repo_server_hostname: repo-mirror.local
 # Uncomment and configure if using split-nfs inventory
 
 # use_nfs_storage: true
-# nfs_server: repo-mirror-storage.local
-# nfs_server_ip: 192.168.1.200        # Storage server IP or hostname
-# nfs_client_ip: 192.168.1.100        # Repo server IP or hostname (for NFS exports)
+# nfs_server_ip: repo-mirror-storage.local  # Storage server IP or hostname
+# nfs_client_ip: repo-mirror.local          # Repo server IP or hostname (for NFS exports)
 # nfs_mount_path: /repos
 # nfs_export_path: /repos

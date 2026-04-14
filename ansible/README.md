@@ -197,9 +197,8 @@ vim repo.conf
 Uncomment and set NFS variables:
 ```yaml
 use_nfs_storage: true
-nfs_server: repo-mirror-storage.local
-nfs_server_ip: 192.168.1.200
-nfs_client_ip: 192.168.1.100
+nfs_server_ip: repo-mirror-storage.local
+nfs_client_ip: repo-mirror.local
 ```
 
 #### 3. Test Connectivity
