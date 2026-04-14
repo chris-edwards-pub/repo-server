@@ -1,0 +1,82 @@
+---
+- name: Install NFS client packages
+  dnf:
+    name:
+      - nfs-utils
+    state: present
+  tags: [packages, nfs-client]
+
+- name: Create NFS mount point directory
+  file:
+    path: "{{ nfs_mount_path }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  tags: [nfs-client]
+
+- name: Test connectivity to NFS server
+  wait_for:
+    host: "{{ nfs_server_ip }}"
+    port: 2049
+    timeout: 30
+  tags: [nfs-client]
+
+- name: Check if NFS is already mounted
+  shell: mount | grep -q "{{ nfs_mount_path }}"
+  register: nfs_mounted
+  changed_when: false
+  failed_when: false
+  tags: [nfs-client]
+
+- name: Mount NFS share
+  mount:
+    path: "{{ nfs_mount_path }}"
+    src: "{{ nfs_server_ip }}:{{ nfs_export_path }}"
+    fstype: nfs4
+    opts: defaults,_netdev,nofail
+    state: mounted
+  tags: [nfs-client]
+
+- name: Ensure NFS mount persists in fstab
+  mount:
+    path: "{{ nfs_mount_path }}"
+    src: "{{ nfs_server_ip }}:{{ nfs_export_path }}"
+    fstype: nfs4
+    opts: defaults,_netdev,nofail
+    state: present
+  tags: [nfs-client]
+
+- name: Configure SELinux for NFS client
+  seboolean:
+    name: "{{ item }}"
+    state: yes
+    persistent: yes
+  loop:
+    - use_nfs_home_dirs
+  when: selinux_enabled | default(true)
+  tags: [selinux, nfs-client]
+
+- name: Verify NFS mount
+  command: df -h {{ nfs_mount_path }}
+  register: nfs_mount_check
+  changed_when: false
+  tags: [nfs-client]
+
+- name: Display NFS mount information
+  debug:
+    var: nfs_mount_check.stdout_lines
+  tags: [nfs-client]
+
+- name: Test write access to NFS mount
+  file:
+    path: "{{ nfs_mount_path }}/.nfs_write_test"
+    state: touch
+    mode: '0644'
+  tags: [nfs-client]
+
+- name: Remove test file
+  file:
+    path: "{{ nfs_mount_path }}/.nfs_write_test"
+    state: absent
+  tags: [nfs-client]

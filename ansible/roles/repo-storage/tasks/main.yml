@@ -1,4 +1,9 @@
 ---
+- name: Check if using NFS storage
+  set_fact:
+    skip_dir_creation: "{{ use_nfs_storage | default(false) }}"
+  tags: [storage]
+
 - name: Create repository base directory
   file:
     path: "{{ repo_base_path }}"
@@ -6,6 +11,8 @@
     mode: '0755'
     owner: root
     group: root
+  when: not skip_dir_creation
+  tags: [storage]
 
 - name: Create RPM repository base directories
   file:
@@ -24,6 +31,8 @@
     - "{{ repo_base_path }}/rpm/epel"
     - "{{ repo_base_path }}/rpm/epel/{{ repo_epel_version }}"
     - "{{ repo_base_path }}/rpm/custom"
+  when: not skip_dir_creation
+  tags: [storage]
 
 - name: Create architecture-specific directories for Rocky Linux repos
   file:
@@ -33,6 +42,8 @@
     owner: root
     group: root
   loop: "{{ ['BaseOS', 'AppStream', 'extras'] | product(repo_rpm_architectures) | list }}"
+  when: not skip_dir_creation
+  tags: [storage]
 
 - name: Create architecture-specific directories for EPEL repos
   file:
@@ -42,6 +53,8 @@
     owner: root
     group: root
   loop: "{{ repo_rpm_architectures }}"
+  when: not skip_dir_creation
+  tags: [storage]
 
 - name: Create DEB repository directories (Aptly)
   file:
@@ -55,6 +68,8 @@
     - "{{ repo_base_path }}/aptly/config"
     - "{{ repo_base_path }}/aptly/data"
     - "{{ repo_base_path }}/aptly/public"
+  when: not skip_dir_creation
+  tags: [storage]
 
 - name: Create logs directory
   file:
@@ -63,6 +78,8 @@
     mode: '0755'
     owner: root
     group: root
+  when: not skip_dir_creation
+  tags: [storage]
 
 - name: Set SELinux contexts for RPM repos
   sefcontext:

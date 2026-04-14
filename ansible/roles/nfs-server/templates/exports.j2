@@ -1,0 +1,6 @@
+# NFS Exports Configuration
+# Managed by Ansible - Do not edit manually
+# Generated on {{ ansible_date_time.iso8601 }}
+
+# Export {{ nfs_export_path }} to repository server
+{{ nfs_export_path }} {{ nfs_client_ip }}(rw,sync,no_root_squash,no_subtree_check)

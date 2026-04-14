@@ -28,3 +28,16 @@ repo_server_hostname: repo-mirror.local
 # proxy_http: "http://proxy.example.com:80"
 # proxy_https: "http://proxy.example.com:80"
 # proxy_no: "localhost,127.0.0.1,.local,.internal"
+
+# ============================================
+# Split-Server NFS Configuration (Optional)
+# ============================================
+# Enable when using separate NFS storage server
+# Uncomment and configure if using split-nfs inventory
+
+# use_nfs_storage: true
+# nfs_server: repo-mirror-storage.local
+# nfs_server_ip: 192.168.1.200        # Storage server IP
+# nfs_client_ip: 192.168.1.100        # Repo server IP (for NFS exports)
+# nfs_mount_path: /repos
+# nfs_export_path: /repos

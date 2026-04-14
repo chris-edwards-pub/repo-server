@@ -1,0 +1,101 @@
+---
+- name: Install NFS server packages
+  dnf:
+    name:
+      - nfs-utils
+      - rpcbind
+    state: present
+  tags: [packages, nfs-server]
+
+- name: Create NFS export directory
+  file:
+    path: "{{ nfs_export_path }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  tags: [nfs-server]
+
+- name: Configure NFS exports
+  template:
+    src: exports.j2
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload NFS exports
+  tags: [nfs-server]
+
+- name: Configure firewall for NFS
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - nfs
+    - rpc-bind
+    - mountd
+  when: firewall_enabled | default(true)
+  tags: [firewall, nfs-server]
+
+- name: Allow NFS from specific client IP
+  firewalld:
+    rich_rule: "rule family='ipv4' source address='{{ nfs_client_ip }}' service name='nfs' accept"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  when:
+    - firewall_enabled | default(true)
+    - nfs_client_ip is defined
+  tags: [firewall, nfs-server]
+
+- name: Configure SELinux for NFS exports
+  seboolean:
+    name: "{{ item }}"
+    state: yes
+    persistent: yes
+  loop:
+    - nfs_export_all_rw
+    - nfs_export_all_ro
+  when: selinux_enabled | default(true)
+  tags: [selinux, nfs-server]
+
+- name: Set SELinux context for NFS export directory
+  sefcontext:
+    target: "{{ nfs_export_path }}(/.*)?"
+    setype: public_content_rw_t
+    state: present
+  when: selinux_enabled | default(true)
+  tags: [selinux, nfs-server]
+
+- name: Apply SELinux contexts to export directory
+  command: restorecon -Rv {{ nfs_export_path }}
+  when: selinux_enabled | default(true)
+  changed_when: false
+  tags: [selinux, nfs-server]
+
+- name: Start and enable rpcbind service
+  systemd:
+    name: rpcbind
+    state: started
+    enabled: yes
+  tags: [nfs-server]
+
+- name: Start and enable NFS server service
+  systemd:
+    name: nfs-server
+    state: started
+    enabled: yes
+  tags: [nfs-server]
+
+- name: Verify NFS export
+  command: exportfs -v
+  register: nfs_exports
+  changed_when: false
+  tags: [nfs-server]
+
+- name: Display NFS exports
+  debug:
+    var: nfs_exports.stdout_lines
+  tags: [nfs-server]

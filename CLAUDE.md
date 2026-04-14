@@ -142,6 +142,49 @@ This approach keeps sensitive data out of the repository while maintaining a doc
 ansible-playbook playbooks/deploy-repo-mirror.yml -e @repo.conf
 ```
 
+### Split-Server NFS Architecture
+
+The project supports splitting storage and compute across two servers:
+
+**Inventory**: `ansible/inventory/split-nfs/hosts.yml`
+- `nfs_servers` group: Storage server (exports /repos via NFS)
+- `repo_servers` group: Repository server (mounts NFS, runs services)
+
+**Key Roles**:
+- `nfs-server`: Configures NFS exports on storage server
+- `nfs-client`: Mounts NFS share on repository server
+- `repo-storage`: Skips directory creation when `use_nfs_storage: true`
+
+**Deployment Model**:
+- Ansible runs on Server 1 (repo server) with `ansible_connection: local`
+- Reaches out to Server 2 (storage server) via SSH
+- Mixed inventory: localhost + remote
+
+**Configuration Variables** (set in repo.conf or inventory):
+- `use_nfs_storage: true` - Enable NFS mode
+- `nfs_server_ip` - IP of storage server
+- `nfs_client_ip` - IP of repo server (for NFS exports)
+- `nfs_export_path` - Path to export (default: /repos)
+- `nfs_mount_path` - Mount point on client (default: /repos)
+
+**Deployment**:
+```bash
+ansible-playbook playbooks/deploy-repo-mirror.yml \
+  -i inventory/split-nfs/hosts.yml \
+  -e @repo.conf
+```
+
+**When to use split-server**:
+- Large storage requirements (easier to scale dedicated storage)
+- Separate I/O from compute workload
+- Using high-performance storage array
+- Network storage appliance
+
+**When NOT to use**:
+- Simple single-server setup is sufficient
+- Network bandwidth is limited
+- Additional complexity not justified
+
 ## Code Standards
 
 ### Shell Scripts

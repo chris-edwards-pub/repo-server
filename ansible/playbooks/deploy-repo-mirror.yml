@@ -1,4 +1,47 @@
 ---
+- name: Configure NFS Storage Server
+  hosts: nfs_servers
+  become: true
+
+  pre_tasks:
+    - name: Validate OS requirements
+      assert:
+        that:
+          - ansible_distribution == "Rocky" or ansible_distribution == "RedHat"
+          - ansible_distribution_major_version|int >= 9
+        fail_msg: "This playbook requires Rocky Linux 10 (or Rocky/RHEL 9+)"
+        success_msg: "OS validation passed: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      tags: always
+
+    - name: Display NFS server deployment info
+      debug:
+        msg:
+          - "Configuring NFS Storage Server: {{ inventory_hostname }}"
+          - "Export path: {{ nfs_export_path }}"
+          - "Client IP: {{ nfs_client_ip }}"
+      tags: always
+
+  roles:
+    - role: common
+      tags: [common, nfs-server]
+
+    - role: nfs-server
+      tags: [nfs-server]
+
+  post_tasks:
+    - name: Display NFS server status
+      debug:
+        msg:
+          - "========================================"
+          - "NFS Storage Server configured successfully!"
+          - "========================================"
+          - ""
+          - "Export: {{ nfs_export_path }}"
+          - "Allowed client: {{ nfs_client_ip }}"
+          - ""
+          - "Verify with: exportfs -v"
+      tags: always
+
 - name: Deploy Repository Mirror Server
   hosts: repo_servers
   become: true
@@ -47,6 +90,10 @@
   roles:
     - role: common
       tags: [common]
+
+    - role: nfs-client
+      tags: [nfs-client]
+      when: use_nfs_storage | default(false)
 
     - role: repo-storage
       tags: [storage]

@@ -151,6 +151,128 @@ ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.
 - Production deployments from central location
 - Existing Ansible infrastructure
 
+### Option 3: Split-Server Deployment with NFS
+
+Deploy across two servers with separated storage and compute:
+
+**Architecture:**
+- **Server 1 (repo-mirror)**: Repository server - runs services, NFS client
+- **Server 2 (repo-mirror-storage)**: Storage server - provides NFS storage
+
+**Benefits:**
+- Separate storage and compute resources
+- Easier storage scaling and management
+- Dedicated network for large file transfers
+- Storage server can be optimized for I/O
+
+#### 1. Configure Inventory
+
+Edit `inventory/split-nfs/hosts.yml`:
+```yaml
+all:
+  children:
+    nfs_servers:
+      hosts:
+        repo-mirror-storage:
+          ansible_host: 192.168.1.200  # CHANGE THIS - Storage server IP
+          nfs_client_ip: 192.168.1.100  # CHANGE THIS - Repo server IP
+    
+    repo_servers:
+      hosts:
+        repo-mirror:
+          ansible_connection: local
+          use_nfs_storage: true
+          nfs_server_ip: 192.168.1.200  # CHANGE THIS - Storage server IP
+```
+
+#### 2. Configure Environment
+
+Create repo.conf with NFS settings:
+```bash
+cd ansible
+cp repo.conf.example repo.conf
+vim repo.conf
+```
+
+Uncomment and set NFS variables:
+```yaml
+use_nfs_storage: true
+nfs_server: repo-mirror-storage.local
+nfs_server_ip: 192.168.1.200
+nfs_client_ip: 192.168.1.100
+```
+
+#### 3. Test Connectivity
+
+```bash
+# Test SSH to storage server
+ansible nfs_servers -m ping -i inventory/split-nfs/hosts.yml
+
+# Test that localhost connection works for repo server
+ansible repo_servers -m ping -i inventory/split-nfs/hosts.yml
+```
+
+#### 4. Deploy
+
+```bash
+# Deploy NFS server first (recommended for first-time setup)
+ansible-playbook playbooks/deploy-repo-mirror.yml \
+  -i inventory/split-nfs/hosts.yml \
+  -e @repo.conf \
+  --tags nfs-server
+
+# Then deploy repo server with NFS client
+ansible-playbook playbooks/deploy-repo-mirror.yml \
+  -i inventory/split-nfs/hosts.yml \
+  -e @repo.conf \
+  --tags common,nfs-client,storage,rpm,deb,nginx,monitoring
+
+# Or deploy everything in one command
+ansible-playbook playbooks/deploy-repo-mirror.yml \
+  -i inventory/split-nfs/hosts.yml \
+  -e @repo.conf
+```
+
+#### 5. Verify NFS Setup
+
+```bash
+# On repo server (Server 1):
+df -h /repos  # Should show NFS mount
+mount | grep nfs
+ls -la /repos
+
+# On storage server (Server 2):
+ssh ec2-user@repo-mirror-storage
+exportfs -v  # Should show /repos export
+showmount -e
+```
+
+#### Troubleshooting NFS
+
+**NFS mount fails:**
+```bash
+# Check connectivity on port 2049
+telnet <storage-server-ip> 2049
+
+# Check firewall on storage server
+sudo firewall-cmd --list-all
+
+# Check SELinux on storage server
+sudo getsebool nfs_export_all_rw
+
+# Check exports
+exportfs -v
+```
+
+**Performance issues:**
+- Verify network bandwidth between servers (consider 10GbE)
+- Check NFS mount options in /etc/fstab
+- Monitor network latency: `ping <storage-server-ip>`
+
+**Mount doesn't persist after reboot:**
+- Check /etc/fstab has _netdev option
+- Verify network is up before mount: `systemctl status network-online.target`
+
 ## Configuration File
 
 The `repo.conf` file holds environment-specific values that should not be committed to the repository.
