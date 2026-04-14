@@ -121,6 +121,27 @@ Both inventories share `group_vars/repo_servers.yml` via symlink. Changes to rep
 - Change monitoring settings
 - Update any repository-specific variables
 
+### Environment Configuration File
+
+For environment-specific and sensitive values, use `ansible/repo.conf`:
+- Copy `ansible/repo.conf.example` to `ansible/repo.conf`
+- Set values for your environment (server hostname, IPs, proxy)
+- Pass to Ansible with `-e @repo.conf`
+- File is gitignored and won't be committed
+
+This approach keeps sensitive data out of the repository while maintaining a documented template.
+
+**Variables to put in repo.conf:**
+- `repo_server_hostname` - Server FQDN/IP for client access
+- `ansible_host` - Remote server IP (for remote deployment)
+- `ansible_user` - SSH user (for remote deployment)
+- `proxy_http`, `proxy_https`, `proxy_no` - Proxy settings
+
+**Usage:**
+```bash
+ansible-playbook playbooks/deploy-repo-mirror.yml -e @repo.conf
+```
+
 ## Code Standards
 
 ### Shell Scripts

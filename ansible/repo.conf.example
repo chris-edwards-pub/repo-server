@@ -1,0 +1,30 @@
+---
+# Repository Mirror Server Configuration
+# Copy this file to repo.conf and customize for your environment
+# repo.conf is gitignored and will not be committed
+
+# ============================================
+# Server Configuration
+# ============================================
+# Server hostname or IP for repository access
+# This is what clients will use to connect
+repo_server_hostname: repo-mirror.local
+
+# ============================================
+# Remote Deployment Configuration
+# ============================================
+# Only needed if deploying to a remote server
+# Leave commented for localhost deployment
+
+# ansible_host: 192.168.1.100  # IP address of remote server
+# ansible_user: ec2-user        # SSH user for deployment
+
+# ============================================
+# Proxy Configuration (Optional)
+# ============================================
+# HTTP/HTTPS proxy for outbound connections
+# Required if server needs proxy to reach internet
+
+# proxy_http: "http://proxy.example.com:80"
+# proxy_https: "http://proxy.example.com:80"
+# proxy_no: "localhost,127.0.0.1,.local,.internal"

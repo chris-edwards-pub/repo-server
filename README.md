@@ -47,27 +47,33 @@ This project deploys and manages a centralized repository mirror server that hos
 ```bash
 cd ansible
 
-# Deploy to localhost (default)
-ansible-playbook playbooks/deploy-repo-mirror.yml
+# Create configuration file (recommended)
+cp repo.conf.example repo.conf
+vim repo.conf  # Set server hostname and proxy settings
+
+# Deploy to localhost
+ansible-playbook playbooks/deploy-repo-mirror.yml -e @repo.conf
 
 # Check mode (dry-run)
-ansible-playbook playbooks/deploy-repo-mirror.yml --check
+ansible-playbook playbooks/deploy-repo-mirror.yml -e @repo.conf --check
 ```
 
 **Remote Deployment:**
 ```bash
 cd ansible
 
-# Configure remote inventory
-vim inventory/production/hosts.yml
-vim inventory/production/group_vars/repo_servers.yml
+# Create configuration file (recommended)
+cp repo.conf.example repo.conf
+vim repo.conf  # Set server hostname, IP, and proxy settings
 
 # Deploy to remote server
-ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml
+ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml -e @repo.conf
 
 # Test connectivity first
 ansible repo_servers -m ping -i inventory/production/hosts.yml
 ```
+
+**Note**: Use `repo.conf` for environment-specific values (hostnames, IPs, proxy) to keep them out of the repository.
 
 See [ansible/README.md](ansible/README.md) for detailed deployment instructions.
 

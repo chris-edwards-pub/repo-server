@@ -292,3 +292,11 @@ personal/
 
 # Claude Code artifacts
 .claude/
+
+# ============================================
+# Ansible Environment Configuration
+# ============================================
+# Actual configuration file (contains sensitive data)
+ansible/repo.conf
+ansible/*.conf
+!ansible/repo.conf.example

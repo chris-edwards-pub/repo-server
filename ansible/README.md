@@ -61,23 +61,23 @@ Deploy on the same server where Ansible is running:
 # Navigate to ansible directory
 cd ansible
 
-# Review configuration (optional)
-vim inventory/localhost/hosts.yml
+# Create configuration file
+cp repo.conf.example repo.conf
+vim repo.conf  # Edit repo_server_hostname and proxy settings
 
-# Adjust variables (optional)
-vim inventory/production/group_vars/repo_servers.yml
-
-# Deploy
-ansible-playbook playbooks/deploy-repo-mirror.yml
+# Deploy with configuration
+ansible-playbook playbooks/deploy-repo-mirror.yml -e @repo.conf
 
 # Dry-run first (check mode)
-ansible-playbook playbooks/deploy-repo-mirror.yml --check
+ansible-playbook playbooks/deploy-repo-mirror.yml -e @repo.conf --check
 
 # With verbose output
-ansible-playbook playbooks/deploy-repo-mirror.yml -vvv
+ansible-playbook playbooks/deploy-repo-mirror.yml -e @repo.conf -vvv
 ```
 
 **No SSH or network configuration required** - Ansible runs commands directly on localhost.
+
+**Note**: The `repo.conf` file holds environment-specific values and is gitignored. See [Configuration File](#configuration-file) section below for details.
 
 ### Option 2: Remote Deployment
 
@@ -96,14 +96,27 @@ all:
           ansible_user: ec2-user            # CHANGE THIS if using different user
 ```
 
-#### 2. Configure Variables
+**Note**: Instead of editing inventory files directly, you can use `repo.conf` to override these values. See [Configuration File](#configuration-file) section below.
 
-Edit `inventory/production/group_vars/repo_servers.yml`:
-```yaml
-repo_server_hostname: repo-mirror.local  # CHANGE THIS
+#### 2. Configure Environment
+
+Create your configuration file:
+```bash
+cd ansible
+cp repo.conf.example repo.conf
+vim repo.conf
 ```
 
-Review and adjust other settings as needed (architectures, schedules, etc.)
+Set these values in `repo.conf`:
+```yaml
+repo_server_hostname: repo-mirror.example.com
+ansible_host: 192.168.1.100
+ansible_user: ec2-user
+```
+
+Review `inventory/production/group_vars/repo_servers.yml` and adjust other settings as needed (architectures, schedules, etc.).
+
+**Note**: Sensitive values like proxy settings should be placed in `repo.conf` instead of committing them to group_vars.
 
 #### 3. Test Connectivity
 
@@ -115,13 +128,13 @@ ansible repo_servers -m ping -i inventory/production/hosts.yml
 
 ```bash
 # Full deployment
-ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml
+ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml -e @repo.conf
 
 # Dry-run first
-ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml --check
+ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml -e @repo.conf --check
 
 # With verbose output
-ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml -vvv
+ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml -e @repo.conf -vvv
 ```
 
 ### Choosing Between Local and Remote
@@ -137,6 +150,55 @@ ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.
 - Managing multiple mirror servers
 - Production deployments from central location
 - Existing Ansible infrastructure
+
+## Configuration File
+
+The `repo.conf` file holds environment-specific values that should not be committed to the repository.
+
+### Setup
+
+```bash
+cd ansible
+cp repo.conf.example repo.conf
+vim repo.conf
+```
+
+### Variables
+
+**Required variables:**
+- `repo_server_hostname` - Server FQDN or IP (what clients use to connect)
+
+**For remote deployment:**
+- `ansible_host` - IP address of target server
+- `ansible_user` - SSH username for deployment
+
+**Optional variables:**
+- `proxy_http` - HTTP proxy URL
+- `proxy_https` - HTTPS proxy URL
+- `proxy_no` - Comma-separated list of no-proxy domains
+
+### Example
+
+```yaml
+repo_server_hostname: repo-mirror.local
+ansible_host: 10.0.1.50
+ansible_user: ec2-user
+proxy_http: "http://proxy.internal:3128"
+proxy_https: "http://proxy.internal:3128"
+proxy_no: "localhost,127.0.0.1,.local,.internal"
+```
+
+### Usage
+
+```bash
+# Localhost deployment
+ansible-playbook playbooks/deploy-repo-mirror.yml -e @repo.conf
+
+# Remote deployment
+ansible-playbook playbooks/deploy-repo-mirror.yml -i inventory/production/hosts.yml -e @repo.conf
+```
+
+**Note**: `repo.conf` is gitignored and will not be committed. The example template `repo.conf.example` is provided in the repository.
 
 ## Deployment Options
 
